@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-parse_movie_info 函数单元测试
-基于实际豆瓣搜索结果HTML的测试
+parse_movie_info function unit test
+Based on actual Douban search result HTML testing
 """
 
 import unittest
@@ -13,17 +13,17 @@ from utils import setup_default_logging
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from utils.douban_html_util import parse_movie_info
+from utils.douban_search import parse_movie_search_result
 
-# 初始化日志
+# Initialize logging
 logger = setup_default_logging()
 
 class TestParseMovieInfoV2(unittest.TestCase):
-    """测试更新后的 parse_movie_info 函数"""
+    """Test updated parse_movie_info function"""
     
     def setUp(self):
-        """测试前准备 - 读取实际的豆瓣搜索结果HTML文件"""
-        # 读取实际的豆瓣搜索结果文件
+        """Preparation before testing - Read actual Douban search result HTML file"""
+        # Read actual Douban search result file
         douban_html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_data/douban_search_result.html')
 
         try:
@@ -34,14 +34,14 @@ class TestParseMovieInfoV2(unittest.TestCase):
 
 
     def test_full_html_file_parsing(self):
-        """测试完整HTML文件的解析"""
-        # 测试解析完整HTML文件
-        result = parse_movie_info(self.full_douban_html)
+        """Test parsing of complete HTML file"""
+        # Test parsing complete HTML file
+        result = parse_movie_search_result(self.full_douban_html)
 
-        logger.info(f"解析结果: {result}")
+        logger.info(f"Parsing result: {result}")
         
         self.assertIsInstance(result, dict)
-        # 验证至少能提取到一些基本信息
+        # Verify that at least some basic information can be extracted
         self.assertIsInstance(result['title'], str)
         self.assertIsInstance(result['rating'], str)
         self.assertIsInstance(result['year'], str)

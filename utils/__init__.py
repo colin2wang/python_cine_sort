@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-工具包初始化文件
+Utility package initialization file
 """
 
-# 导出主要模块
+# Logging utilities
 from .logging_util import (
     LogConfig,
     setup_logging,
@@ -21,13 +21,19 @@ from .logging_util import (
     log_exceptions
 )
 
-# 导出豆瓣相关功能
-from .douban_html_util import (
+# Douban Search
+from .douban_search import (
     get_movie_search_result_html,
-    parse_movie_info
+    parse_movie_search_result
 )
 
-# 导出电影文件扫描功能
+# Douban Details
+from .douban_details import (
+    get_movie_details_html,
+    parse_movie_details_result
+)
+
+# Movie file
 from .movie_file_util import (
     MovieFileInfo,
     MovieFileScannerConfig,
@@ -52,9 +58,13 @@ __all__ = [
     'LogLevelContext',
     'log_exceptions',
     
-    # Douban utilities
+    # Douban Search
     'get_movie_search_result_html',
-    'parse_movie_info',
+    'parse_movie_search_result',
+
+    # Douban Details
+    'get_movie_details_html',
+    'parse_movie_details_result',
     
     # Movie file scanning utilities
     'MovieFileInfo',

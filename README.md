@@ -1,109 +1,177 @@
-# Python 豆瓣电影排序工具
+# Python Douban Movie Sorting Tool
 
-这是一个用于查询和处理豆瓣电影信息的Python工具包。
+This is a Python toolkit for querying and processing Douban movie information.
 
-## 功能特性
+## Features
 
-- 🎬 豆瓣电影搜索查询
-- 📊 电影信息解析（待完善）
-- 🔧 完善的错误处理机制
-- 🌐 支持中文电影名称查询
+- 🎬 Douban movie search and query
+- 📊 Movie information parsing (under development)
+- 🔧 Robust error handling mechanism
+- 🌐 Support for Chinese movie name queries
+- 📁 Movie file scanning and organization
+- 🔄 Automated Douban verification bypass (Proof of Work)
 
-## 项目结构
+## Project Structure
 
 ```
 python_cine_sort/
 ├── utils/
 │   ├── __init__.py
-│   ├── douban_html_util.py     # 豆瓣查询核心模块
-│   ├── movie_file_scanner.py   # 电影文件扫描器
-│   └── logging_util.py         # 日志工具
-├── test_douban_html_util.py    # 豆瓣查询测试
-├── test_movie_scanner.py       # 电影扫描器测试
-├── movie_scanner_example.py    # 扫描器使用示例
-├── cleanup_test_files.py       # 测试文件清理工具
-├── movies_config_example.yml   # 扫描器配置示例
-├── example_usage.py            # 使用示例
-├── pyproject.toml              # 项目配置
-└── uv.lock                    # 依赖锁定文件
+│   ├── common_util.py          # Common utility functions
+│   ├── douban_details.py       # Douban movie details module
+│   ├── douban_search.py        # Douban search core module
+│   ├── logging_util.py         # Logging utilities
+│   └── movie_file_util.py      # Movie file scanner
+├── test/
+│   ├── test_douban_details.py
+│   ├── test_douban_details_pow.py
+│   ├── test_douban_search.py
+│   ├── test_movie_file_util.py
+│   ├── test_movie_full_process.py
+│   └── test_parse_movie_info_from_file.py
+├── test_data/
+│   └── douban_search_result.html
+├── configs/
+│   └── movie_file_util.yml
+├── pyproject.toml              # Project configuration
+└── uv.lock                    # Dependency lock file
 ```
 
-## 安装依赖
+## Installation
 
 ```bash
-# 使用uv安装依赖
+# Install dependencies using uv
 uv sync
 
-# 或者使用pip安装
-pip install requests>=2.32.5
+# Or install using pip
+pip install requests>=2.32.5 beautifulsoup4>=4.14.3 pyyaml>=6.0
 ```
 
-## 使用方法
+## Usage
 
-### 基本使用
+### Basic Usage
 
 ```python
-from utils.douban_html_util import get_movie_search_result_html
+from utils.douban_search import get_movie_search_result_html
 
-# 查询电影信息
-html_content = get_movie_search_result_html("肖申克的救赎", "1994")
+# Query movie information
+html_content = get_movie_search_result_html("The Shawshank Redemption", "1994")
 if html_content:
-    print(f"获取到 {len(html_content)} 字符的内容")
+    print(f"Obtained {len(html_content)} characters of content")
 ```
 
-### 运行示例
+### Movie File Scanning
+
+```python
+from utils.movie_file_util import scan_movies_from_directory
+
+# Scan movie files from directory
+movies = scan_movies_from_directory("/path/to/movies")
+for movie in movies:
+    print(f"Movie: {movie['movie_name']} ({movie['year']})")
+```
+
+### Running Tests
 
 ```bash
-# 运行豆瓣查询测试
-python test_douban_html_util.py
+# Run Douban query tests
+python test/test_douban_search.py
 
-# 运行电影扫描器测试
-python test_movie_file_util.py
+# Run movie scanner tests
+python test/test_movie_file_util.py
 
-# 运行电影扫描器示例
-python movie_scanner_example.py
+# Run full process tests
+python test/test_movie_full_process.py
 
-# 运行使用示例
-python example_usage.py
-
-# 清理测试文件
-python cleanup_test_files.py --dry-run  # 预览将要删除的文件
-python cleanup_test_files.py            # 实际删除测试文件
+# Run Douban verification bypass tests
+python test/test_douban_details_pow.py
 ```
 
-## 代码改进说明
+## Core Modules
 
-### 已修复的问题：
+### Douban Search (`utils/douban_search.py`)
+- `get_movie_search_result_html()`: Fetch movie search results from Douban
+- `parse_movie_search_result()`: Parse movie information from search results
 
-1. **函数名拼写错误**：`get_moive` → `get_movie`
-2. **字符串格式化**：使用现代的f-string替代旧式%格式化
-3. **缺少返回值**：添加了完整的返回逻辑
-4. **错误处理不完善**：增加了详细的异常处理
-5. **缺少类型提示**：添加了typing注解
-6. **文档字符串**：完善了函数说明文档
+### Movie File Scanner (`utils/movie_file_util.py`)
+- `MovieFileScanner`: Main scanner class for movie files
+- `MovieFileScannerConfig`: Configuration class for scanner settings
+- `scan_movies_from_directory()`: Convenience function for directory scanning
 
-### 新增功能：
+### Logging Utilities (`utils/logging_util.py`)
+- Comprehensive logging configuration
+- Multiple log levels and output formats
+- File and console logging support
 
-1. **超时控制**：设置10秒请求超时
-2. **编码处理**：正确设置UTF-8编码
-3. **详细日志**：提供清晰的成功/失败反馈
-4. **扩展性设计**：预留了电影信息解析接口
+## Configuration
 
-## 注意事项
+The movie file scanner can be configured using YAML files:
 
-- 该工具仅用于学习和研究目的
-- 请遵守豆瓣网站的使用条款
-- 建议适当控制请求频率，避免对服务器造成压力
-- 返回的是原始HTML内容，如需结构化数据需要进一步解析
+```yaml
+# Sample configuration in configs/movie_file_util.yml
+extensions:
+  - .mkv
+  - .mp4
+  - .avi
 
-## 开发计划
+cleanup_rules:
+  - '1080[Pp]|720[Pp]|4[Kk]'           # Resolution indicators
+  - 'HD|BD|DVD'                       # Quality indicators
+  - '[Cc]hi|[Ee]ng'                   # Language indicators
 
-- [ ] 实现HTML内容解析功能
-- [ ] 添加电影评分和详情提取
-- [ ] 支持批量查询和导出功能
-- [ ] 添加缓存机制提高效率
-- [ ] 完善单元测试覆盖
+year_patterns:
+  - '(?:^|\s)(19|20)\d{2}(?:$|\s)'    # Year pattern matching
+```
 
-## 许可证
+## Key Improvements
+
+### Fixed Issues:
+1. **Function name typos**: `get_moive` → `get_movie`
+2. **String formatting**: Modern f-string instead of old % formatting
+3. **Missing return values**: Added complete return logic
+4. **Incomplete error handling**: Enhanced detailed exception handling
+5. **Missing type hints**: Added typing annotations
+6. **Documentation strings**: Improved function documentation
+
+### New Features:
+1. **Timeout control**: 10-second request timeout
+2. **Encoding handling**: Proper UTF-8 encoding
+3. **Detailed logging**: Clear success/failure feedback
+4. **Extensible design**: Reserved movie information parsing interface
+5. **Advanced file parsing**: Sophisticated filename cleanup and movie name extraction
+6. **Proof of Work**: Automatic Douban verification bypass
+
+## Important Notes
+
+- This tool is intended for learning and research purposes only
+- Please comply with Douban website terms of service
+- Recommend controlling request frequency to avoid server pressure
+- Returned content is raw HTML; structured data requires further parsing
+- Some advanced features may require additional configuration
+
+## Development Roadmap
+
+- [ ] Implement HTML content parsing functionality
+- [ ] Add movie ratings and detailed information extraction
+- [ ] Support batch queries and export functionality
+- [ ] Add caching mechanism to improve efficiency
+- [ ] Enhance unit test coverage
+- [ ] Add GUI interface for easier usage
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
 
 MIT License
+
+## Acknowledgments
+
+- Thanks to Douban for providing the movie database
+- Inspired by various movie organization tools
+- Built with Python best practices and modern development tools

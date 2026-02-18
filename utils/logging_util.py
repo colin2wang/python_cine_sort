@@ -1,6 +1,6 @@
 """
-日志配置工具模块
-提供统一的日志配置和管理功能
+Logging configuration utility module
+Provides unified logging configuration and management functionality
 """
 
 import logging
@@ -12,7 +12,7 @@ from typing import Optional, Union
 
 
 class LogConfig:
-    """日志配置类"""
+    """Logging configuration class"""
     
     def __init__(self):
         self.logger_name = "python_cine_sort"
@@ -29,37 +29,37 @@ class LogConfig:
         self.enable_file = False
         
     def set_log_level(self, level: Union[int, str]):
-        """设置日志级别"""
+        """Set logging level"""
         if isinstance(level, str):
             level = getattr(logging, level.upper())
         self.log_level = level
         
     def set_logger_name(self, name: str):
-        """设置日志记录器名称"""
+        """Set logger name"""
         self.logger_name = name
         
     def set_log_directory(self, log_dir: Union[str, Path]):
-        """设置日志目录"""
+        """Set log directory"""
         self.log_dir = Path(log_dir)
         
     def disable_console(self):
-        """禁用控制台输出"""
+        """Disable console output"""
         self.enable_console = False
         
     def disable_file_logging(self):
-        """禁用文件日志"""
+        """Disable file logging"""
         self.enable_file = False
 
 
 def setup_logging(config: Optional[LogConfig] = None) -> logging.Logger:
     """
-    配置并返回日志记录器
+    Configure and return logger
     
     Args:
-        config: 日志配置对象，如果为None则使用默认配置
+        config: Logging configuration object, if None uses default configuration
         
     Returns:
-        logging.Logger: 配置好的日志记录器
+        logging.Logger: Configured logger
     """
     if config is None:
         config = LogConfig()
@@ -110,13 +110,13 @@ def setup_logging(config: Optional[LogConfig] = None) -> logging.Logger:
 
 def get_logger(name: Optional[str] = None) -> logging.Logger:
     """
-    获取日志记录器
+    Get logger
     
     Args:
-        name: 日志记录器名称，如果为None则使用默认名称
+        name: Logger name, if None uses default name
         
     Returns:
-        logging.Logger: 日志记录器实例
+        logging.Logger: Logger instance
     """
     if name is None:
         name = "python_cine_sort"
@@ -127,13 +127,13 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
 # 默认配置的便捷函数
 def setup_default_logging(log_level: Union[int, str] = logging.INFO) -> logging.Logger:
     """
-    设置默认日志配置
+    Set up default logging configuration
     
     Args:
-        log_level: 日志级别
+        log_level: Logging level
         
     Returns:
-        logging.Logger: 配置好的日志记录器
+        logging.Logger: Configured logger
     """
     config = LogConfig()
     config.set_log_level(log_level)
@@ -141,12 +141,12 @@ def setup_default_logging(log_level: Union[int, str] = logging.INFO) -> logging.
 
 
 def setup_debug_logging() -> logging.Logger:
-    """设置调试级别的日志"""
+    """Set up debug level logging"""
     return setup_default_logging(logging.DEBUG)
 
 
 def setup_error_logging() -> logging.Logger:
-    """设置错误级别的日志"""
+    """Set up error level logging"""
     return setup_default_logging(logging.ERROR)
 
 
@@ -156,10 +156,10 @@ _default_logger: Optional[logging.Logger] = None
 
 def get_default_logger() -> logging.Logger:
     """
-    获取默认日志记录器（单例模式）
+    Get default logger (singleton pattern)
     
     Returns:
-        logging.Logger: 默认日志记录器
+        logging.Logger: Default logger
     """
     global _default_logger
     if _default_logger is None:
@@ -169,33 +169,33 @@ def get_default_logger() -> logging.Logger:
 
 # 便捷的日志函数
 def debug(message: str, *args, **kwargs):
-    """调试日志"""
+    """Debug log"""
     get_default_logger().debug(message, *args, **kwargs)
 
 
 def info(message: str, *args, **kwargs):
-    """信息日志"""
+    """Info log"""
     get_default_logger().info(message, *args, **kwargs)
 
 
 def warning(message: str, *args, **kwargs):
-    """警告日志"""
+    """Warning log"""
     get_default_logger().warning(message, *args, **kwargs)
 
 
 def error(message: str, *args, **kwargs):
-    """错误日志"""
+    """Error log"""
     get_default_logger().error(message, *args, **kwargs)
 
 
 def critical(message: str, *args, **kwargs):
-    """严重错误日志"""
+    """Critical error log"""
     get_default_logger().critical(message, *args, **kwargs)
 
 
 # 上下文管理器用于临时修改日志级别
 class LogLevelContext:
-    """日志级别上下文管理器"""
+    """Logging level context manager"""
     
     def __init__(self, logger: logging.Logger, temp_level: int):
         self.logger = logger
@@ -213,10 +213,10 @@ class LogLevelContext:
 # 异常处理装饰器
 def log_exceptions(logger: Optional[logging.Logger] = None):
     """
-    装饰器：自动记录函数异常
+    Decorator: Automatically log function exceptions
     
     Args:
-        logger: 日志记录器，如果为None则使用默认记录器
+        logger: Logger, if None uses default logger
     """
     if logger is None:
         logger = get_default_logger()
@@ -226,7 +226,7 @@ def log_exceptions(logger: Optional[logging.Logger] = None):
             try:
                 return func(*args, **kwargs)
             except Exception as e:
-                logger.error(f"函数 {func.__name__} 执行时发生异常: {e}", exc_info=True)
+                logger.error(f"Exception occurred in function {func.__name__}: {e}", exc_info=True)
                 raise
         return wrapper
     return decorator
