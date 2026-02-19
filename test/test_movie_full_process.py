@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 from utils import get_default_logger, get_movie_search_result_html, parse_movie_search_result
-from utils.movie_file_util import MovieFileScanner, MovieFileScannerConfig
+from utils.movie_filename_util import MovieFileScanner, MovieFileScannerConfig
 
 # Get default logger
 logger = get_default_logger()
@@ -18,13 +18,13 @@ class TestMovieFileScanner(unittest.TestCase):
     def setUp(self):
         """Preparation before testing"""
         # Get configuration file path
-        config_path = Path(__file__).parent.parent / "configs" / "movie_file_util.yml"
+        config_path = Path(__file__).parent.parent / "configs" / "movie_filename_util.yml"
         config = MovieFileScannerConfig(config_path)
         self.scanner = MovieFileScanner(config)
 
     def tearDown(self):
         """Cleanup after testing"""
-        # 清理测试过程中可能创建的临时文件或资源
+        # Clean up temporary files or resources that may have been created during testing
         pass
                     
     def test_full_process_with_folder(self):
@@ -50,5 +50,5 @@ class TestMovieFileScanner(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    # 运行测试
+    # Run tests
     unittest.main(verbosity=2)

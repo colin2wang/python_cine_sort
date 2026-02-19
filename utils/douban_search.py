@@ -4,24 +4,24 @@ from typing import Optional
 from utils import get_default_logger
 from utils.common_util import sleep_for_random_time
 
-# 获取默认日志记录器
+# Get default logger
 logger = get_default_logger()
 
 
 def get_movie_search_result_html(name: str, year: str) -> Optional[str]:
-    """获取豆瓣电影搜索结果
+    """Get Douban movie search results
     
     Args:
-        name (str): 电影名称
-        year (str): 电影年份
+        name (str): Movie name
+        year (str): Movie year
     
     Returns:
-        Optional[str]: HTML响应内容，失败时返回None
+        Optional[str]: HTML response content, returns None on failure
     """
-    # 构建搜索URL
+    # Build search URL
     url = f'https://www.douban.com/search?cat=1002&q={name} {year}'
     
-    # 设置请求头，模拟浏览器访问
+    # Set request headers to simulate browser access
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -31,32 +31,32 @@ def get_movie_search_result_html(name: str, year: str) -> Optional[str]:
     }
     
     try:
-        # 发送GET请求
+        # Send GET request
         logger.info(f"GET {url}")
         sleep_for_random_time()
         response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()  # 检查HTTP状态码
+        response.raise_for_status()  # Check HTTP status code
         
-        # 设置正确的编码
+        # Set correct encoding
         response.encoding = 'utf-8'
         
-        logger.info(f"✓ 成功获取豆瓣搜索结果: {name} ({year})")
+        logger.info(f"✓ Successfully retrieved Douban search results: {name} ({year})")
         return response.text
         
     except requests.exceptions.Timeout:
-        logger.warning(f"✗ 请求超时: {name} ({year})")
+        logger.warning(f"✗ Request timeout: {name} ({year})")
         return None
     except requests.exceptions.ConnectionError:
-        logger.error(f"✗ 连接错误: {name} ({year})")
+        logger.error(f"✗ Connection error: {name} ({year})")
         return None
     except requests.exceptions.HTTPError as e:
-        logger.error(f"✗ HTTP错误 {e.response.status_code}: {name} ({year})")
+        logger.error(f"✗ HTTP error {e.response.status_code}: {name} ({year})")
         return None
     except requests.exceptions.RequestException as e:
-        logger.error(f"✗ 请求异常: {e} - {name} ({year})")
+        logger.error(f"✗ Request exception: {e} - {name} ({year})")
         return None
     except Exception as e:
-        logger.error(f"✗ 未知错误: {e} - {name} ({year})")
+        logger.error(f"✗ Unknown error: {e} - {name} ({year})")
         return None
 
 

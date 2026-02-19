@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 from utils import get_default_logger
-from utils.movie_file_util import MovieFileScanner, MovieFileScannerConfig
+from utils.movie_filename_util import MovieFileScanner, MovieFileScannerConfig
 
 # Get default logger
 logger = get_default_logger()
@@ -18,7 +18,7 @@ class TestMovieFileScanner(unittest.TestCase):
     def setUp(self):
         """Preparation before testing"""
         # Get configuration file path
-        config_path = Path(__file__).parent.parent / "configs" / "movie_file_util.yml"
+        config_path = Path(__file__).parent.parent / "configs" / "movie_filename_util.yml"
         config = MovieFileScannerConfig(config_path)
         self.scanner = MovieFileScanner(config)
 
@@ -44,33 +44,36 @@ class TestMovieFileScanner(unittest.TestCase):
         """Test filename cleaning functionality"""
         # Test cleaning complex filename
         filename = "[Haruhana] Chainsaw Man - Reze Arc [WebRip][HEVC-10bit 1080p][CHS_JPN]"
-        cleaned_name = self.scanner._cleanup_filename(filename)
-        # Extract movie name from cleaned name
-        movie_name = self.scanner._extract_movie_name_from_cleaned(cleaned_name)
+        movie_name = self.scanner._process_movie_name(filename)
         self.assertEqual("Chainsaw Man Reze Arc", movie_name)
 
         # Test cleaning Chinese filename
         chinese_filename = "猪猪侠.一只老猪的逆袭.1080p.HD国语中字无水印[最新电影www.5266ys.com]"
-        cleaned_name = self.scanner._cleanup_filename(chinese_filename)
-        movie_name = self.scanner._extract_movie_name_from_cleaned(cleaned_name)
+        movie_name = self.scanner._process_movie_name(chinese_filename)
         self.assertEqual("猪猪侠 一只老猪的逆袭", movie_name)
 
         # Test filename with year
         filename_with_year = "阳光电影dygod.org.睡觉的笨蛋.2025.BD.1080P.日语中字.mkv"
-        cleaned_name = self.scanner._cleanup_filename(filename_with_year)
-        movie_name = self.scanner._extract_movie_name_from_cleaned(cleaned_name)
+        movie_name = self.scanner._process_movie_name(filename_with_year)
         # Expected result should be cleaned name, may still contain year information
         self.assertIn("睡觉的笨蛋", movie_name)
     
     def test_config_loading(self):
         """Test configuration loading functionality"""
         # Test configuration file loading
-        config_path = Path(__file__).parent.parent / "configs" / "movie_file_util.yml"
+        config_path = Path(__file__).parent.parent / "configs" / "movie_filename_util.yml"
         config = MovieFileScannerConfig(config_path)
         self.assertIn('.mkv', config.extensions)
         self.assertIn('.mp4', config.extensions)
         self.assertGreater(len(config.cleanup_rules), 0)
         self.assertGreater(len(config.year_patterns), 0)
+        # Test new unified configuration items
+        self.assertGreater(len(config.technical_identifiers), 0)
+        self.assertGreater(len(config.language_identifiers), 0)
+        self.assertGreater(len(config.final_tech_patterns), 0)
+        self.assertGreater(len(config.tech_indicators), 0)
+        self.assertGreater(len(config.subtitle_keywords), 0)
+        self.assertGreater(len(config.common_subtitle_indicators), 0)
 
         
         # Test custom configuration

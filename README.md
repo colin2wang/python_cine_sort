@@ -63,7 +63,7 @@ if html_content:
 ### Movie File Scanning
 
 ```python
-from utils.movie_file_util import scan_movies_from_directory
+from utils.movie_filename_util import scan_movies_from_directory
 
 # Scan movie files from directory
 movies = scan_movies_from_directory("/path/to/movies")
@@ -78,7 +78,7 @@ for movie in movies:
 python test/test_douban_search.py
 
 # Run movie scanner tests
-python test/test_movie_file_util.py
+python test/test_movie_filename_util.py
 
 # Run full process tests
 python test/test_movie_full_process.py
@@ -108,7 +108,7 @@ python test/test_douban_details_pow.py
 The movie file scanner can be configured using YAML files:
 
 ```yaml
-# Sample configuration in configs/movie_file_util.yml
+# Sample configuration in configs/movie_filename_util.yml
 extensions:
   - .mkv
   - .mp4

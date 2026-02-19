@@ -34,7 +34,7 @@ from .douban_details import (
 )
 
 # Movie file
-from .movie_file_util import (
+from .movie_filename_util import (
     MovieFileInfo,
     MovieFileScannerConfig,
     MovieFileScanner,

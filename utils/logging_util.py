@@ -64,37 +64,37 @@ def setup_logging(config: Optional[LogConfig] = None) -> logging.Logger:
     if config is None:
         config = LogConfig()
     
-    # 创建日志记录器
+    # Create logger
     logger = logging.getLogger(config.logger_name)
     logger.setLevel(config.log_level)
     
-    # 避免重复添加处理器
+    # Avoid duplicate handler addition
     if logger.handlers:
         return logger
     
-    # 创建格式化器
+    # Create formatter
     formatter = logging.Formatter(
         fmt=config.log_format,
         datefmt=config.date_format
     )
     
-    # 控制台处理器
+    # Console handler
     if config.enable_console:
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(config.log_level)
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
     
-    # 文件处理器
+    # File handler
     if config.enable_file:
-        # 确保日志目录存在
+        # Ensure log directory exists
         config.log_dir.mkdir(exist_ok=True)
         
-        # 生成日志文件名（按日期）
+        # Generate log filename (by date)
         today = datetime.now().strftime('%Y-%m-%d')
         log_file = config.log_dir / f"{config.logger_name}_{today}.log"
         
-        # 文件处理器（带轮转）
+        # File handler (with rotation)
         file_handler = logging.handlers.RotatingFileHandler(
             filename=log_file,
             maxBytes=config.max_bytes,
@@ -124,7 +124,7 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
     return logging.getLogger(name)
 
 
-# 默认配置的便捷函数
+# Convenient functions with default configuration
 def setup_default_logging(log_level: Union[int, str] = logging.INFO) -> logging.Logger:
     """
     Set up default logging configuration
@@ -150,7 +150,7 @@ def setup_error_logging() -> logging.Logger:
     return setup_default_logging(logging.ERROR)
 
 
-# 全局日志记录器实例
+# Global logger instance
 _default_logger: Optional[logging.Logger] = None
 
 
@@ -167,7 +167,7 @@ def get_default_logger() -> logging.Logger:
     return _default_logger
 
 
-# 便捷的日志函数
+# Convenient logging functions
 def debug(message: str, *args, **kwargs):
     """Debug log"""
     get_default_logger().debug(message, *args, **kwargs)
@@ -193,7 +193,7 @@ def critical(message: str, *args, **kwargs):
     get_default_logger().critical(message, *args, **kwargs)
 
 
-# 上下文管理器用于临时修改日志级别
+# Context manager for temporarily modifying log level
 class LogLevelContext:
     """Logging level context manager"""
     
@@ -210,7 +210,7 @@ class LogLevelContext:
         self.logger.setLevel(self.original_level)
 
 
-# 异常处理装饰器
+# Exception handling decorator
 def log_exceptions(logger: Optional[logging.Logger] = None):
     """
     Decorator: Automatically log function exceptions
@@ -233,21 +233,21 @@ def log_exceptions(logger: Optional[logging.Logger] = None):
 
 
 if __name__ == "__main__":
-    # 测试代码
+    # Test code
     logger = setup_debug_logging()
     
-    logger.debug("这是调试信息")
-    logger.info("这是普通信息")
-    logger.warning("这是警告信息")
-    logger.error("这是错误信息")
-    logger.critical("这是严重错误信息")
+    logger.debug("This is debug information")
+    logger.info("This is general information")
+    logger.warning("This is warning information")
+    logger.error("This is error information")
+    logger.critical("This is critical error information")
     
-    # 测试便捷函数
+    # Test convenient functions
     info("使用便捷函数记录信息")
     error("使用便捷函数记录错误")
     
-    # 测试上下文管理器
+    # Test context manager
     with LogLevelContext(logger, logging.DEBUG):
-        logger.info("临时提升到DEBUG级别")
+        logger.info("Temporarily elevated to DEBUG level")
         
-    logger.info("恢复原来的日志级别")
+    logger.info("Restored original log level")

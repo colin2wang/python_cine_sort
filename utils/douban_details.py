@@ -1,61 +1,52 @@
-import requests
 from typing import Optional
 
-from utils import get_default_logger
-from utils.common_util import sleep_for_random_time
+import requests
 
-# 获取默认日志记录器
+from utils import get_default_logger
+from utils.common_util import sleep_for_random_time, bypass_douban_verification
+
+# Get default logger
 logger = get_default_logger()
 
 
 def get_movie_details_html(sid: str) -> Optional[str]:
-    """获取豆瓣电影搜索结果
+    """Get Douban movie details page HTML content (automatically handles verification mechanism)
 
     Args:
-        sid (str): 电影SID
+        sid (str): Movie SID
 
     Returns:
-        Optional[str]: HTML响应内容，失败时返回None
+        Optional[str]: HTML response content, returns None on failure
     """
-    # 构建搜索URL
+    # Build search URL
     url = f'https://movie.douban.com/subject/{sid}/'
-
-    # 设置请求头，模拟浏览器访问
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-    }
-
+    
     try:
-        # 发送GET请求
-        logger.info(f"GET {url}")
+        # Use function with verification handling to get page content
+        logger.info(f"Getting movie details for SID: {sid}")
         sleep_for_random_time()
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()  # 检查HTTP状态码
-
-        # 设置正确的编码
+        response = bypass_douban_verification(url)
+        
+        # Set correct encoding
         response.encoding = 'utf-8'
-
-        logger.info(f"✓ 成功获取豆瓣电影详情: {sid}")
+        
+        logger.info(f"✓ Successfully retrieved Douban movie details: {sid}")
         return response.text
-
+        
     except requests.exceptions.Timeout:
-        logger.warning(f"✗ 请求超时: {sid}")
+        logger.warning(f"✗ Request timeout: {sid}")
         return None
     except requests.exceptions.ConnectionError:
-        logger.error(f"✗ 连接错误: {sid}")
+        logger.error(f"✗ Connection error: {sid}")
         return None
     except requests.exceptions.HTTPError as e:
-        logger.error(f"✗ HTTP错误 {e.response.status_code}: {sid}")
+        logger.error(f"✗ HTTP error {e.response.status_code}: {sid}")
         return None
     except requests.exceptions.RequestException as e:
-        logger.error(f"✗ 请求异常: {e} - {sid}")
+        logger.error(f"✗ Request exception: {e} - {sid}")
         return None
     except Exception as e:
-        logger.error(f"✗ 未知错误: {e} - {sid}")
+        logger.error(f"✗ Unknown error: {e} - {sid}")
         return None
 
 def parse_movie_details_result(html_content: str) -> dict:

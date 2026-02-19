@@ -1,6 +1,8 @@
-"""电影文件扫描工具模块
+"""Movie file scanning utility module
 
-用于扫描指定目录下的视频文件，提取电影名称和年份信息
+Used to scan video files in specified directories and extract movie names and year information
+
+filename: movie_filename_util.py
 """
 
 import re
@@ -17,7 +19,7 @@ logger = get_default_logger()
 
 @dataclass
 class MovieFileInfo:
-    """电影文件信息数据类"""
+    """Movie file information data class"""
     file_path: Path
     movie_name: str
     year: Optional[str]
@@ -26,23 +28,30 @@ class MovieFileInfo:
 
 
 class MovieFileScannerConfig:
-    """电影文件扫描器配置类"""
+    """Movie file scanner configuration class"""
     
     def __init__(self, config_file: Optional[Path] = None):
-        # 默认值设为空，强制从配置文件读取
+        # Set default values to empty, force reading from configuration file
         self.extensions = []
         self.cleanup_rules = []
         self.year_patterns = []
         self.movie_name_rules = []
+        # New configuration items for unified processing
+        self.technical_identifiers = []
+        self.language_identifiers = []
+        self.final_tech_patterns = []
+        self.tech_indicators = []
+        self.subtitle_keywords = []
+        self.common_subtitle_indicators = []
 
             
         if config_file and config_file.exists():
             self.load_config(config_file)
         else:
-            raise ValueError("必须提供有效的配置文件路径")
+            raise ValueError("Must provide valid configuration file path")
     
     def load_config(self, config_file: Path):
-        """从YAML配置文件加载配置"""
+        """Load configuration from YAML configuration file"""
         try:
             with open(config_file, 'r', encoding='utf-8') as f:
                 config = yaml.safe_load(f)
@@ -51,7 +60,7 @@ class MovieFileScannerConfig:
                 self.extensions = [ext.lower() if ext.startswith('.') else f'.{ext.lower()}' 
                                  for ext in config['extensions']]
                     
-            # 新的清理规则配置
+            # New cleanup rules configuration
             if 'cleanup_rules' in config:
                 self.cleanup_rules = config['cleanup_rules']
 
@@ -59,14 +68,33 @@ class MovieFileScannerConfig:
             if 'year_patterns' in config:
                 self.year_patterns = config['year_patterns']
                     
-            # 新的电影名规则配置
+            # New movie name rules configuration
             if 'movie_name_rules' in config:
                 self.movie_name_rules = config['movie_name_rules']
                 
-            logger.debug(f"✓ 已从 {config_file} 加载配置")
+            # Load unified processing configuration items
+            if 'technical_identifiers' in config:
+                self.technical_identifiers = config['technical_identifiers']
+                
+            if 'language_identifiers' in config:
+                self.language_identifiers = config['language_identifiers']
+                
+            if 'final_tech_patterns' in config:
+                self.final_tech_patterns = config['final_tech_patterns']
+                
+            if 'tech_indicators' in config:
+                self.tech_indicators = config['tech_indicators']
+                
+            if 'subtitle_keywords' in config:
+                self.subtitle_keywords = config['subtitle_keywords']
+                
+            if 'common_subtitle_indicators' in config:
+                self.common_subtitle_indicators = config['common_subtitle_indicators']
+                
+            logger.debug(f"✓ Configuration loaded from {config_file}")
             
         except Exception as e:
-            logger.warning(f"✗ 加载配置文件失败: {e}，使用默认配置")
+            logger.warning(f"✗ Failed to load configuration file: {e}, using default configuration")
 
 
 class MovieFileScanner:
@@ -127,15 +155,12 @@ class MovieFileScanner:
             # Phase 1: Extract year from original filename (modified to extract from original filename)
             year = self._extract_year_from_original(filename)
             
-            # Phase 2: Clean up useless information in filename
-            cleaned_name = self._cleanup_filename(filename)
+            # Phase 2 & 3: Process filename and extract movie name in one step
+            cleaned_name, movie_name = self._process_movie_name(filename)
             
             if not cleaned_name:
                 self.logger.warning(f"✗ Cleaned filename is empty: {file_path.name}")
                 return None
-            
-            # Phase 3: Extract movie name from cleaned string
-            movie_name = self._extract_movie_name_from_cleaned(cleaned_name)
             
             if not movie_name:
                 self.logger.warning(f"✗ Cannot extract movie name from cleaned filename: {file_path.name} -> {cleaned_name}")
@@ -156,8 +181,102 @@ class MovieFileScanner:
             self.logger.error(f"✗ Error parsing file {file_path.name}: {e}")
             return None
     
+    def _process_movie_name(self, filename: str) -> Tuple[str, str]:
+        """Unified method to process filename and extract clean movie name
+        
+        This method combines the functionality of _cleanup_filename and 
+        _extract_movie_name_from_cleaned to eliminate duplicate logic.
+        All parameters are moved to configuration file.
+        
+        Args:
+            filename: Original filename
+            
+        Returns:
+            Tuple[str, str]: (cleaned_filename, final_movie_name)
+        """
+        original = filename
+        processed = filename
+        
+        # Phase 1: Handle subtitle segments
+        subtitle_segments = self._extract_subtitle_segments(processed)
+        for segment in subtitle_segments:
+            processed = processed.replace(segment, ' ')
+            self.logger.debug(f"Remove subtitle segment: '{segment}'")
+        
+        # Phase 2: Apply configuration cleanup rules
+        for i, pattern in enumerate(self.config.cleanup_rules, 1):
+            before_clean = processed
+            processed = re.sub(pattern, ' ', processed)
+            if before_clean != processed:
+                self.logger.debug(f"Cleanup rule {i} applied: '{pattern}' -> '{before_clean}' => '{processed}'")
+        
+        # Phase 3: Convert separators to spaces
+        processed = re.sub(r'[.\-_]+', ' ', processed)
+        processed = re.sub(r'\s+', ' ', processed)
+        processed = processed.strip()
+        
+        # Store intermediate cleaned result
+        cleaned_filename = processed
+        
+        # Phase 4: Apply movie name extraction rules
+        for i, pattern in enumerate(self.config.movie_name_rules, 1):
+            match = re.search(pattern, cleaned_filename, re.IGNORECASE)
+            if match:
+                movie_name = match.group(1).strip()
+                if movie_name:
+                    self.logger.debug(f"Movie name rule {i} matched successfully: '{cleaned_filename}' -> '{movie_name}'")
+                    return cleaned_filename, movie_name
+        
+        # Phase 5: Fine-tune processing for residual technical information
+        refined_name = cleaned_filename
+        
+        # Remove residual years (stricter matching)
+        refined_name = re.sub(r'(?:^|\s)(19|20)\d{2}(?:$|\s)', ' ', refined_name)
+        
+        # Remove technical identifiers using configuration
+        for pattern in self.config.technical_identifiers:
+            refined_name = re.sub(pattern, ' ', refined_name, flags=re.IGNORECASE)
+        
+        # Remove language and subtitle identifiers using configuration
+        for pattern in self.config.language_identifiers:
+            refined_name = re.sub(pattern, ' ', refined_name, flags=re.IGNORECASE)
+        
+        # Clean up extra spaces and punctuation
+        refined_name = re.sub(r'\s+', ' ', refined_name)  # Merge multiple spaces
+        refined_name = re.sub(r'[\s\-_.]+$', '', refined_name)  # Remove trailing spaces and punctuation
+        refined_name = re.sub(r'^[\s\-_.]+', '', refined_name)  # Remove leading spaces and punctuation
+        refined_name = refined_name.strip()
+        
+        # Remove residual technical identifiers (final fine-tuning)
+        # Handle year removal separately
+        refined_name = re.sub(r'(?:^|\s)(19|20)\d{2}(?:$|\s)', ' ', refined_name)
+        
+        for pattern in self.config.final_tech_patterns:
+            refined_name = re.sub(pattern, ' ', refined_name, flags=re.IGNORECASE)
+            refined_name = re.sub(r'\s+', ' ', refined_name)  # Re-merge spaces
+        
+        refined_name = refined_name.strip()
+        
+        # Remove isolated single characters
+        words = refined_name.split()
+        filtered_words = [word for word in words if len(word) > 1 or word.isalnum()]
+        final_movie_name = ' '.join(filtered_words)
+        
+        if final_movie_name:
+            self.logger.debug(f"Fine-tuned processing: '{cleaned_filename}' -> '{final_movie_name}'")
+        else:
+            # Final fallback
+            final_movie_name = cleaned_filename
+            self.logger.debug(f"Using default rule: '{cleaned_filename}' -> '{final_movie_name}'")
+        
+        self.logger.debug(f"Filename processing completed: '{original}' -> Cleaned: '{cleaned_filename}', Movie name: '{final_movie_name}'")
+        return cleaned_filename, final_movie_name
+    
     def _cleanup_filename(self, filename: str) -> str:
         """Clean up useless information in filename
+        
+        DEPRECATED: This method is kept for backward compatibility.
+        Use _process_movie_name() instead.
         
         Args:
             filename: Original filename
@@ -165,30 +284,23 @@ class MovieFileScanner:
         Returns:
             str: Cleaned filename
         """
-        cleaned = filename
-        original = filename
+        cleaned_filename, _ = self._process_movie_name(filename)
+        return cleaned_filename
+    
+    def _extract_movie_name_from_cleaned(self, cleaned_filename: str) -> str:
+        """Extract movie name from cleaned filename
         
-        # First handle special partial matching logic
-        # Identify and remove complete segments containing subtitle keywords
-        subtitle_segments = self._extract_subtitle_segments(cleaned)
-        for segment in subtitle_segments:
-            cleaned = cleaned.replace(segment, ' ')
-            self.logger.debug(f"Remove subtitle segment: '{segment}'")
+        DEPRECATED: This method is kept for backward compatibility.
+        Use _process_movie_name() instead.
         
-        # Apply cleanup rules in order
-        for i, pattern in enumerate(self.config.cleanup_rules, 1):
-            before_clean = cleaned
-            cleaned = re.sub(pattern, ' ', cleaned)
-            if before_clean != cleaned:
-                self.logger.debug(f"Cleanup rule {i} applied: '{pattern}' -> '{before_clean}' => '{cleaned}'")
-        
-        # Clean up extra spaces and separators
-        cleaned = re.sub(r'[.\-_]+', ' ', cleaned)  # Convert dots, hyphens, underscores to spaces
-        cleaned = re.sub(r'\s+', ' ', cleaned)      # Merge multiple spaces
-        cleaned = cleaned.strip()                   # Remove leading/trailing spaces
-        
-        self.logger.debug(f"Filename cleanup completed: '{original}' -> '{cleaned}'")
-        return cleaned
+        Args:
+            cleaned_filename: Cleaned filename
+            
+        Returns:
+            str: Movie name
+        """
+        _, movie_name = self._process_movie_name(cleaned_filename)
+        return movie_name
     
     def _extract_subtitle_segments(self, filename: str) -> List[str]:
         """Extract complete segments containing subtitle keywords
@@ -201,14 +313,8 @@ class MovieFileScanner:
         """
         segments_to_remove = []
         
-        # Define subtitle-related keywords
-        subtitle_keywords = [
-            '中字', '中英双字', '双语字幕', '内嵌中字', '简体中字', '繁体中字',
-            '国语', '粤语', '台配', '日语', '韩语', '英语', '法语', '德语', '俄语',
-            '西班牙语', '泰语', '菲律宾语', '他加禄语', 'Filipino', 'Tagalog', 
-            'English', 'Chinese', '无水印', '完整版', '高清版', '修复版', 
-            '导演版', '加长版', '国粤双语', '日语中字', '英语中字'
-        ]
+        # Use subtitle keywords from configuration
+        subtitle_keywords = self.config.subtitle_keywords
         
         # Split filename by separators
         parts = re.split(r'[.\-_]+', filename)
@@ -250,18 +356,15 @@ class MovieFileScanner:
             return True
         
         # If segment mainly consists of technical identifiers + subtitle keywords combination
-        tech_indicators = ['1080P', '720P', '4K', 'HD', 'BD', 'DVD', 'X264', 'H264', 'AAC', 'MP4', 'MKV']
+        tech_indicators = self.config.tech_indicators
+        
         has_tech_indicator = any(indicator in segment.upper() for indicator in tech_indicators)
         
         if has_tech_indicator and keyword in segment:
             return True
         
         # If segment contains combinations of multiple subtitle keywords
-        subtitle_keywords = ['中字', '中英双字', '双语字幕', '内嵌中字', '简体中字', '繁体中字',
-                           '国语', '粤语', '台配', '日语', '韩语', '英语', '法语', '德语', '俄语',
-                           '西班牙语', '泰语', '菲律宾语', '他加禄语', 'Filipino', 'Tagalog', 
-                           'English', 'Chinese', '无水印', '完整版', '高清版', '修复版', 
-                           '导演版', '加长版', '国粤双语', '日语中字', '英语中字']
+        subtitle_keywords = self.config.subtitle_keywords
         
         keyword_count = sum(1 for k in subtitle_keywords if k in segment)
         if keyword_count >= 2:  # Contains multiple subtitle keywords
@@ -280,7 +383,8 @@ class MovieFileScanner:
                 return True
         
         # If keyword is a common subtitle identifier and segment is longer, it might be a combination identifier
-        common_subtitle_indicators = ['中英双字', '双语字幕', '内嵌中字', '国粤双语', '日语中字', '英语中字']
+        common_subtitle_indicators = self.config.common_subtitle_indicators
+        
         if keyword in common_subtitle_indicators and len(segment) > len(keyword):
             return True
         
@@ -326,7 +430,8 @@ class MovieFileScanner:
                         words_after and len(words_after[0]) > 1):
                         # Check if there are technical identifiers after the year
                         next_word = words_after[0].upper()
-                        tech_indicators = ['1080P', '720P', 'HD', 'BD', 'DVD', 'X264', 'H264', 'AAC', 'MP4', 'MKV']
+                        tech_indicators = self.config.tech_indicators
+                                                            
                         if any(indicator in next_word for indicator in tech_indicators):
                             # Year followed by technical identifiers, likely release year
                             self.logger.debug(f"Year {year_str} followed by technical identifier '{next_word}', judged as release year")
@@ -355,100 +460,7 @@ class MovieFileScanner:
         
         return None
     
-    def _extract_movie_name_from_cleaned(self, cleaned_filename: str) -> Optional[str]:
-        """Extract movie name from cleaned filename
-        
-        Args:
-            cleaned_filename: Cleaned filename
-            
-        Returns:
-            str: Movie name, returns None if no match
-        """
-        # First try using movie name rules for matching
-        for i, pattern in enumerate(self.config.movie_name_rules, 1):
-            match = re.search(pattern, cleaned_filename, re.IGNORECASE)
-            if match:
-                movie_name = match.group(1).strip()
-                if movie_name:
-                    self.logger.debug(f"Movie name rule {i} matched successfully: '{cleaned_filename}' -> '{movie_name}'")
-                    return movie_name
-        
-        # If no specific rules, need to further clean up possible residual technical information
-        refined_name = cleaned_filename
-        
-        # Remove possible residual years (stricter matching)
-        refined_name = re.sub(r'(?:^|\s)(19|20)\d{2}(?:$|\s)', ' ', refined_name)
-        
-        # Remove possible residual resolution and technical identifiers
-        tech_patterns = [
-            r'\d+[pP]', r'\d+[kK]', r'\b4[Kk]\b', r'\b8[Kk]\b',
-            r'\bHD\b', r'\bBD\b', r'\bDVD\b', r'\bWEBRIP\b', r'\bBLURAY\b',
-            r'\bBDRIP\b', r'\bHDRIP\b', r'\bCAM\b', r'\bR5\b', r'\bTS\b', r'\bTC\b',
-            r'\bSCR\b', r'\bHQ\b', r'\bHQCD\b',
-            r'\bXVID\b', r'\bDIVX\b', r'\bH264\b', r'\bH\.264\b', r'\bH265\b', 
-            r'\bH\.265\b', r'\bHEVC\b', r'\bAVC\b', r'\bVP9\b',
-            # Release group identifiers
-            r'\bBDYS\b|\bYJYS\b|\bJYYS\b|\bDYYS\b|\bYYDS\b'
-        ]
-        
-        for pattern in tech_patterns:
-            refined_name = re.sub(pattern, ' ', refined_name, flags=re.IGNORECASE)
-        
-        # Remove language and subtitle identifiers
-        language_patterns = [
-            r'\b国语\b', r'\b粤语\b', r'\b台配\b', r'\b日语\b', r'\b韩语\b',
-            r'\b英语\b', r'\b法语\b', r'\b德语\b', r'\b俄语\b', r'\b西班牙语\b', r'\b泰语\b',
-            r'\b菲律宾语\b', r'\b他加禄语\b',
-            r'\b中字\b', r'\b中英双字\b', r'\b双语字幕\b', r'\b内嵌中字\b',
-            r'\b简体中字\b', r'\b繁体中字\b', r'\b无水印\b', r'\b完整版\b',
-            r'\b高清版\b', r'\b修复版\b', r'\b导演版\b', r'\b加长版\b',
-            r'\b国粤双语\b', r'\b日语中字\b', r'\b英语中字\b',
-            # English language identifiers (full word matching, avoid accidentally deleting titles)
-            r'\bFilipino\b', r'\bTagalog\b', r'\bEnglish\b', r'\bChinese\b'
-        ]
-        
-        for pattern in language_patterns:
-            refined_name = re.sub(pattern, ' ', refined_name, flags=re.IGNORECASE)
-        
-        # Clean up extra spaces and punctuation again
-        refined_name = re.sub(r'\s+', ' ', refined_name)  # Merge multiple spaces
-        refined_name = re.sub(r'[\s\-_.]+$', '', refined_name)  # Remove trailing spaces and punctuation
-        refined_name = re.sub(r'^[\s\-_.]+', '', refined_name)  # Remove leading spaces and punctuation
-        refined_name = refined_name.strip()
-        
-        # Remove residual technical identifiers (in final fine-tuning stage)
-        final_tech_patterns = [
-            r'\b\d+[pP]\b', r'\b\d+[kK]\b',  # Resolution
-            r'\bX264\b|\bH264\b|\bH\.264\b',  # Encoding format
-            r'\bAAC\b|\bAC3\b|\bDTS\b',  # Audio format
-            r'\bMP4\b|\bMKV\b|\bAVI\b',  # File format
-            r'\bBDYS\b|\bYJYS\b|\bJYYS\b'  # Release group identifiers
-        ]
-        
-        # Handle year removal separately (avoid affecting other processing)
-        refined_name = re.sub(r'(?:^|\s)(19|20)\d{2}(?:$|\s)', ' ', refined_name)
-        
-        for pattern in final_tech_patterns:
-            refined_name = re.sub(pattern, ' ', refined_name, flags=re.IGNORECASE)
-            refined_name = re.sub(r'\s+', ' ', refined_name)  # Re-merge spaces
-        
-        refined_name = refined_name.strip()
-        
-        # Remove isolated single characters (possibly residual punctuation or letters)
-        words = refined_name.split()
-        filtered_words = [word for word in words if len(word) > 1 or word.isalnum()]
-        refined_name = ' '.join(filtered_words)
-        
-        if refined_name:
-            self.logger.debug(f"Fine-tuned processing: '{cleaned_filename}' -> '{refined_name}'")
-            return refined_name
-        
-        # Final fallback: return if there's still content
-        if cleaned_filename:
-            self.logger.debug(f"Using default rule: '{cleaned_filename}' -> '{cleaned_filename}'")
-            return cleaned_filename
-        
-        return None
+
 
 
 def scan_movies_from_directory(directory: str, 

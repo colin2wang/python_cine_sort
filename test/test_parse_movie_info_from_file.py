@@ -50,5 +50,5 @@ class TestParseMovieInfoV2(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    # 运行测试
+    # Run tests
     unittest.main(verbosity=2)

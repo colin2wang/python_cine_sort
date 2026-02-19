@@ -1,0 +1,241 @@
+# movie_filename_util.yml
+
+# Movie File Scanner Configuration File 电影文件扫描器配置文件
+
+# Supported File Extensions 支持的文件扩展名
+extensions:
+  - .mkv
+  - .mp4
+  - .avi
+  - .mov
+  - .wmv
+  - .flv
+  - .webm
+
+# Filename Cleanup Rules (Applied in Order) 文件名清理规则（按顺序应用）
+cleanup_rules:
+  # 1. Remove Bracket Content (Release Groups, Tags, etc.) 移除括号内容（发布组、标签等）
+  - '\[.*?\]'           # Square brackets and their content 方括号及其内容
+  - '\(.*?\)'           # Parentheses and their content 圆括号及其内容
+  
+  # 2. Remove Website and Source Identifiers 移除网站和来源标识
+  - '阳光电影|最新电影|电影天堂|电影港|迅雷下载|磁力链接|dygod\.org'  # Common website identifiers 常见网站标识
+  # More precise domain matching to avoid mis-matching normal filenames 更精确的域名匹配，避免误匹配正常文件名
+  - '(?:阳光电影|最新电影|电影天堂|电影港|迅雷下载|磁力链接)[a-zA-Z0-9.-]*\.[a-zA-Z]{2,}\.'  # Specific website domain prefixes 特定网站域名前缀
+  - 'dygod\.org\.'                                                # dygod.org. domain prefix dygod.org. 域名前缀
+  - 'www\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'                           # URLs starting with www www开头的网址
+  - '[a-zA-Z0-9.-]+\.(?:com|net|org|cn|cc)\b'                      # Common top-level domains (word boundaries) 常见顶级域名（单词边界）
+  
+  # 3. Remove Resolution Related Identifiers 移除分辨率相关标识
+  - '\d+[pP]'           # Such as 1080p, 720P, 4k, 4K, etc. (case insensitive) 如 1080p, 720P, 4k, 4K 等（大小写不敏感）
+  - '\d+[kK]'           # Such as 4K, 8k, 4k, 8K, etc. (case insensitive) 如 4K, 8k, 4k, 8K 等（大小写不敏感）
+  - '4[Kk]|8[Kk]'       # 4K, 8K identifiers (case insensitive) 4K, 8K 标识（大小写不敏感）
+  # Remove years (handled in cleanup phase) 移除年份（在清理阶段处理）
+  - '\.((?:19|20)\d{2})\.'  # Match .2022. format 匹配 .2022. 格式
+  - '^((?:19|20)\d{2})\.'   # Match years at the beginning of filename 匹配文件名开头的年份
+  - '\.((?:19|20)\d{2})$'   # Match years at the end of filename 匹配文件名结尾的年份
+  # Add more year format cleanup rules 添加更多年份格式的清理规则
+  - '((?:19|20)\d{2})(?:版|年)'  # Match formats like 2025edition, 2024year, etc. 匹配 2025版, 2024年 等格式
+  - '(?:^|\s)((?:19|20)\d{2})(?:$|\s)'  # Match standalone year numbers 匹配独立的年份数字
+  
+  # 4. Remove Video Quality Identifiers 移除视频质量标识
+  - 'HD|BD|DVD|WEBRIP|BLURAY|BDRIP|HDRIP|CAM|R5|TS|TC|SCR|HQ|HQCD'  # Video quality 视频质量
+  - 'XVID|DIVX|H264|H\.264|H265|H\.265|HEVC|AVC|VP9'              # Encoding formats 编码格式
+  
+  # 5. Remove Language and Subtitle Identifiers (Support Partial Matching) 移除语言和字幕标识（支持部分匹配）
+  # Use simpler patterns to match entire paragraphs containing keywords 使用更简单的模式匹配包含关键字的整个段落
+  - '\S*(?:国语|粤语|台配|日语|韩语|英语|法语|德语|俄语|西班牙语|泰语|菲律宾语|他加禄语)\S*'  # Language related paragraphs 语言相关段落
+  - '\S*(?:中字|中英双字|双语字幕|内嵌中字|简体中字|繁体中字)\S*'  # Subtitle related paragraphs 字幕相关段落
+  - '\S*(?:无水印|完整版|高清版|修复版|导演版|加长版|国粤双语)\S*'  # Special version paragraphs 特殊版本段落
+  # English language identifier paragraph matching 英文语言标识段落匹配
+  - '\S*(?:Filipino|Tagalog|English|Chinese)\S*'  # English language paragraphs 英文语言段落
+  # Subtitle combination identifiers 字幕组合标识
+  - 'CHS\s*-\s*ENG|ENG\s*-\s*CHS|CHS ENG|ENG CHS'               # Chinese-English subtitle combinations 中英字幕组合
+  
+  # 6. Remove Other Technical Identifiers 移除其他技术标识
+  - 'MP4|MKV|AVI|MOV|WMV|FLV|WEBM'                                 # File formats 文件格式
+  - 'AAC|AC3|DTS|FLAC|WAV'                                         # Audio formats 音频格式
+  - 'DDP?\d\.\d|Dolby|杜比|环绕声'                               # Audio technologies 音频技术
+  - 'HDR|HDR10|Dolby Vision'                                       # HDR technologies HDR技术
+  # Release group identifiers 发布组标识
+  - 'YJYS|BDYS|JYYS|DYYS|YYDS'                                    # Common release groups (YJYS, BDYS, etc.) 常见发布组（长模式优先）
+  
+  # 7. Clean Up Punctuation and Extra Characters 清理标点符号和多余字符
+  - '^[.\-_]+'          # Leading dots and hyphens 开头的点横线
+  - '[.\-_]+$'          # Trailing dots and hyphens 结尾的点横线
+  - '\.{2,}'            # Two or more consecutive dots 两个或以上连续点
+  - '_+'                 # Multiple consecutive underscores 多个连续下划线
+  - '-+'                 # Multiple consecutive hyphens 多个连续横线
+  - '\.{2,}'            # Multiple consecutive periods 多个连续点号
+
+# Year Extraction Patterns 年份提取模式
+year_patterns:
+  - '(?:19|20)\d{2}'  # Four-digit years (using non-capturing groups) 四位数年份（使用非捕获组）
+
+# Movie Name Extraction Rules 电影名提取规则
+movie_name_rules:
+  # Basic Movie Name Extraction (Cleaned string is the movie name) 基本电影名提取（清理后的字符串就是电影名）
+  - '^(.+)$'  # Match entire string as movie name 匹配整个字符串作为电影名
+
+# Technical Identifier Patterns 技术标识符模式
+# Used for removing resolution, encoding, audio, and file format identifiers
+# 用于移除分辨率、编码、音频和文件格式标识符
+technical_identifiers:
+  # Resolution identifiers 分辨率标识符
+  - '\d+[pP]'
+  - '\d+[kK]'
+  - '\b4[Kk]\b'
+  - '\b8[Kk]\b'
+  
+  # Video quality identifiers 视频质量标识符
+  - '\bHD\b'
+  - '\bBD\b'
+  - '\bDVD\b'
+  - '\bWEBRIP\b'
+  - '\bBLURAY\b'
+  - '\bBDRIP\b'
+  - '\bHDRIP\b'
+  - '\bCAM\b'
+  - '\bR5\b'
+  - '\bTS\b'
+  - '\bTC\b'
+  - '\bSCR\b'
+  - '\bHQ\b'
+  - '\bHQCD\b'
+  
+  # Encoding format identifiers 编码格式标识符
+  - '\bXVID\b'
+  - '\bDIVX\b'
+  - '\bH264\b'
+  - '\bH\.264\b'
+  - '\bH265\b'
+  - '\bH\.265\b'
+  - '\bHEVC\b'
+  - '\bAVC\b'
+  - '\bVP9\b'
+  
+  # Release group identifiers 发布组标识符
+  - '\bBDYS\b|\bYJYS\b|\bJYYS\b|\bDYYS\b|\bYYDS\b'
+
+# Language and Subtitle Identifier Patterns 语言和字幕标识符模式
+language_identifiers:
+  # Chinese language identifiers 中文语言标识符
+  - '\b国语\b'
+  - '\b粤语\b'
+  - '\b台配\b'
+  - '\b日语\b'
+  - '\b韩语\b'
+  - '\b英语\b'
+  - '\b法语\b'
+  - '\b德语\b'
+  - '\b俄语\b'
+  - '\b西班牙语\b'
+  - '\b泰语\b'
+  - '\b菲律宾语\b'
+  - '\b他加禄语\b'
+  
+  # Subtitle identifiers 字幕标识符
+  - '\b中字\b'
+  - '\b中英双字\b'
+  - '\b双语字幕\b'
+  - '\b内嵌中字\b'
+  - '\b简体中字\b'
+  - '\b繁体中字\b'
+  - '\b无水印\b'
+  - '\b完整版\b'
+  - '\b高清版\b'
+  - '\b修复版\b'
+  - '\b导演版\b'
+  - '\b加长版\b'
+  - '\b国粤双语\b'
+  - '\b日语中字\b'
+  - '\b英语中字\b'
+  
+  # English language identifiers 英文语言标识符
+  - '\bFilipino\b'
+  - '\bTagalog\b'
+  - '\bEnglish\b'
+  - '\bChinese\b'
+
+# Final Fine-tuning Technical Patterns 最终微调技术模式
+final_tech_patterns:
+  # Resolution 分辨率
+  - '\b\d+[pP]\b'
+  - '\b\d+[kK]\b'
+  
+  # Encoding format 编码格式
+  - '\bX264\b|\bH264\b|\bH\.264\b'
+  
+  # Audio format 音频格式
+  - '\bAAC\b|\bAC3\b|\bDTS\b'
+  
+  # File format 文件格式
+  - '\bMP4\b|\bMKV\b|\bAVI\b'
+  
+  # Release group identifiers 发布组标识符
+  - '\bBDYS\b|\bYJYS\b|\bJYYS\b'
+
+# Technical Indicators 技术指标
+# Used for subtitle segment detection and year validation
+# 用于字幕段检测和年份验证
+tech_indicators:
+  - '1080P'
+  - '720P'
+  - '4K'
+  - 'HD'
+  - 'BD'
+  - 'DVD'
+  - 'X264'
+  - 'H264'
+  - 'AAC'
+  - 'MP4'
+  - 'MKV'
+
+# Subtitle Keywords 字幕关键词
+# Used for identifying subtitle-related segments
+# 用于识别字幕相关段落
+subtitle_keywords:
+  - '中字'
+  - '中英双字'
+  - '双语字幕'
+  - '内嵌中字'
+  - '简体中字'
+  - '繁体中字'
+  - '国语'
+  - '粤语'
+  - '台配'
+  - '日语'
+  - '韩语'
+  - '英语'
+  - '法语'
+  - '德语'
+  - '俄语'
+  - '西班牙语'
+  - '泰语'
+  - '菲律宾语'
+  - '他加禄语'
+  - 'Filipino'
+  - 'Tagalog'
+  - 'English'
+  - 'Chinese'
+  - '无水印'
+  - '完整版'
+  - '高清版'
+  - '修复版'
+  - '导演版'
+  - '加长版'
+  - '国粤双语'
+  - '日语中字'
+  - '英语中字'
+
+# Common Subtitle Indicators 常见字幕标识符
+# Used for identifying combined subtitle identifiers
+# 用于识别组合字幕标识符
+common_subtitle_indicators:
+  - '中英双字'
+  - '双语字幕'
+  - '内嵌中字'
+  - '国粤双语'
+  - '日语中字'
+  - '英语中字'
+
