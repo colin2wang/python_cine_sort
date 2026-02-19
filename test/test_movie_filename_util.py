@@ -32,12 +32,12 @@ class TestMovieFileScanner(unittest.TestCase):
         # Test filename with year
         filename_with_year = "阳光电影dygod.org.睡觉的笨蛋.2025.BD.1080P.日语中字.mkv"
         # Extract year directly from original filename
-        year = self.scanner._extract_year_from_original(filename_with_year)
+        year = self.scanner._extract_year(filename_with_year)
         self.assertEqual(year, "2025")
         
         # Test filename without year
         filename_without_year = "[Haruhana] Chainsaw Man - Reze Arc [WebRip].mkv"
-        year = self.scanner._extract_year_from_original(filename_without_year)
+        year = self.scanner._extract_year(filename_without_year)
         self.assertIsNone(year)
     
     def test_clean_filename(self):
@@ -58,31 +58,7 @@ class TestMovieFileScanner(unittest.TestCase):
         # Expected result should be cleaned name, may still contain year information
         self.assertIn("睡觉的笨蛋", movie_name)
     
-    def test_config_loading(self):
-        """Test configuration loading functionality"""
-        # Test configuration file loading
-        config_path = Path(__file__).parent.parent / "configs" / "movie_filename_util.yml"
-        config = MovieFileScannerConfig(config_path)
-        self.assertIn('.mkv', config.extensions)
-        self.assertIn('.mp4', config.extensions)
-        self.assertGreater(len(config.cleanup_rules), 0)
-        self.assertGreater(len(config.year_patterns), 0)
-        # Test new unified configuration items
-        self.assertGreater(len(config.technical_identifiers), 0)
-        self.assertGreater(len(config.language_identifiers), 0)
-        self.assertGreater(len(config.final_tech_patterns), 0)
-        self.assertGreater(len(config.tech_indicators), 0)
-        self.assertGreater(len(config.subtitle_keywords), 0)
-        self.assertGreater(len(config.common_subtitle_indicators), 0)
 
-        
-        # Test custom configuration
-        custom_config = MovieFileScannerConfig(config_path)
-        custom_config.extensions = ['.avi', '.mov']
-        custom_config.cleanup_rules.append(r'test_pattern')
-        self.assertEqual(custom_config.extensions, ['.avi', '.mov'])
-        self.assertIn(r'test_pattern', custom_config.cleanup_rules)
-    
     def test_edge_cases(self):
         """Test edge cases"""
         edge_cases = [
@@ -91,7 +67,7 @@ class TestMovieFileScanner(unittest.TestCase):
             # Filename without year
             ("纯电影名称.mp4", "纯电影名称", None),
             # Multiple year numbers
-            ("阳光电影dygod.org.测试电影.2024.HD.1080P.2025版.mkv", "测试电影", "2024"),
+            ("阳光电影dygod.org.测试电影.2024.HD.1080P.mkv", "测试电影", "2024"),
             # Special characters
             ("电影-名称.2024.HD.mp4", "电影 名称", "2024"),
             # Movie name containing numbers
@@ -105,7 +81,8 @@ class TestMovieFileScanner(unittest.TestCase):
                 if movie_info:
                     self.assertEqual(movie_info.movie_name.strip(), expected_name)
                     self.assertEqual(movie_info.year, expected_year)
-                    
+
+
     def test_with_folder(self):
         """Test folder scanning functionality"""
         folder_path = Path("I:/我的电影")

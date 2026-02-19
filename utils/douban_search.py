@@ -19,7 +19,10 @@ def get_movie_search_result_html(name: str, year: str) -> Optional[str]:
         Optional[str]: HTML response content, returns None on failure
     """
     # Build search URL
-    url = f'https://www.douban.com/search?cat=1002&q={name} {year}'
+    if year:
+        url = f'https://www.douban.com/search?cat=1002&q={name} {year}'
+    else:
+        url = f'https://www.douban.com/search?cat=1002&q={name}'
     
     # Set request headers to simulate browser access
     headers = {
