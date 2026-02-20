@@ -300,6 +300,14 @@ Built-in Proof of Work system that automatically:
 - Maintains session continuity
 - Handles rate limiting gracefully
 
+## Documentation
+
+For detailed module documentation, please refer to the following guides:
+
+- [Douban Details Parser Documentation](docs/douban_details.md) - Comprehensive guide for parsing detailed movie information from Douban
+- [Douban Search Documentation](docs/douban_search.md) - Complete reference for Douban movie search functionality
+- [Movie Filename Utility Documentation](docs/movie_filename_util.md) - Detailed guide for movie file scanning and metadata extraction
+
 ## API Documentation
 
 For detailed information about Douban API endpoints and parameters, see [douban_query_url.md](douban_query_url.md).

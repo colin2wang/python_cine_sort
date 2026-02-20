@@ -12,7 +12,7 @@ from unittest.mock import Mock
 # Add project root directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils.douban_details import get_movie_details_html
+from utils import get_movie_details_html, parse_movie_details_result
 from utils.logging_util import setup_default_logging
 
 # Initialize logging
@@ -33,8 +33,10 @@ class TestDoubanDetails(unittest.TestCase):
     def test_get_movie_details_success(self):
         """Test successful movie details retrieval"""
         html_content = get_movie_details_html(self.test_sid)
-        logger.info(f"HTML content: {html_content}...")
+        logger.info(f"HTML content size: {len(html_content)} bytes, and first 100 characters: {html_content[:100]}...")
 
+        movie_details =parse_movie_details_result(html_content)
+        logger.info(f"Movie details: {movie_details}")
 
 
 if __name__ == '__main__':

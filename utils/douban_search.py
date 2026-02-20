@@ -75,7 +75,7 @@ def _create_empty_movie_info(error_message: str = None) -> dict:
     return {
         'title': '',
         'rating': '',
-        'description': '',
+
         'directors': [],
         'actors': [],
         'year': '',
@@ -178,13 +178,7 @@ def parse_movie_search_result(html_content: str) -> dict:
                                 break
                         movie_info['actors'] = actors[:5]
                 
-                # Extract description
-                desc_pattern = r'<p[^>]*>(.*?)</p>'
-                desc_match = re.search(desc_pattern, result_block, re.DOTALL)
-                if desc_match:
-                    desc_text = re.sub(r'<.*?>', '', desc_match.group(1)).strip()
-                    movie_info['description'] = desc_text[:200]
-                
+
                 # Exit loop when first valid result is found
                 break
         
@@ -206,7 +200,11 @@ def parse_movie_search_result(html_content: str) -> dict:
                     if title_text and not any(keyword in title_text for keyword in ['可播放', '预告', '花絮', '回顶部', '↑', '&#8593;']):
                         movie_info['title'] = title_text
                         break
-        
+
+        if movie_info['sid'] is None or movie_info['sid'] is '':
+            logger.error(f"✗ Movie SID not found.")
+            return _create_empty_movie_info('Parsing error: Movie SID not found.')
+
         return movie_info
         
     except Exception as e:
