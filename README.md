@@ -116,10 +116,10 @@ Intelligent movie file detection and metadata extraction:
 
 ```python
 from pathlib import Path
-from utils.movie_filename_util import MovieFileScanner, MovieFileScannerConfig
+from utils.movie_file_util import MovieFileScanner, MovieFileScannerConfig
 
 # Load configuration
-config_path = Path("configs/movie_filename_util.yml")
+config_path = Path("configs/movie_file_util.yml")
 config = MovieFileScannerConfig(config_path)
 scanner = MovieFileScanner(config)
 
@@ -167,7 +167,7 @@ python -m unittest discover test/
 
 # Run specific test modules
 python test/test_douban_search.py
-python test/test_movie_filename_util.py
+python test/test_movie_file_util.py
 python test/test_movie_full_process.py
 
 # Run with verbose output
@@ -304,9 +304,9 @@ Built-in Proof of Work system that automatically:
 
 For detailed module documentation, please refer to the following guides:
 
-- [Douban Details Parser Documentation](docs/douban_details.md) - Comprehensive guide for parsing detailed movie information from Douban
+- [Douban Details Documentation](docs/douban_details.md) - Comprehensive guide for parsing detailed movie information from Douban
 - [Douban Search Documentation](docs/douban_search.md) - Complete reference for Douban movie search functionality
-- [Movie Filename Utility Documentation](docs/movie_filename_util.md) - Detailed guide for movie file scanning and metadata extraction
+- [Movie File Utility Documentation](docs/movie_file_util.md) - Detailed guide for movie file scanning and metadata extraction
 
 ## API Documentation
 

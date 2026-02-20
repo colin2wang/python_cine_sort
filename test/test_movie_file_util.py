@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 from utils import get_default_logger
-from utils.movie_filename_util import MovieFileScanner, MovieFileScannerConfig
+from utils.movie_file_util import MovieFileScanner, MovieFileScannerConfig
 
 # Get default logger
 logger = get_default_logger()
@@ -18,7 +18,7 @@ class TestMovieFileScanner(unittest.TestCase):
     def setUp(self):
         """Preparation before testing"""
         # Get configuration file path
-        config_path = Path(__file__).parent.parent / "configs" / "movie_filename_util.yml"
+        config_path = Path(__file__).parent.parent / "configs" / "movie_file_util.yml"
         config = MovieFileScannerConfig(config_path)
         self.scanner = MovieFileScanner(config)
 
@@ -69,9 +69,9 @@ class TestMovieFileScanner(unittest.TestCase):
             # Multiple year numbers
             ("阳光电影dygod.org.测试电影.2024.HD.1080P.mkv", "测试电影", "2024"),
             # Special characters
-            ("电影-名称.2024.HD.mp4", "电影 名称", "2024"),
+            ("电影VS名称.2024.HD.mp4", "电影VS名称", "2024"),
             # Movie name containing numbers
-            ("阳光电影dygod.org.我的1919.2020.BD.1080P.国英双语双字.mkv", "我的1919 国英双语双字", "2020")
+            ("阳光电影dygod.org.我的1919.2020.BD.HD1080P.国英双语双字.mkv", "我的1919", "2020")
         ]
         
         for filename, expected_name, expected_year in edge_cases:

@@ -24,7 +24,6 @@ def get_movie_details_html(sid: str) -> Optional[str]:
     try:
         # Use function with verification handling to get page content
         logger.info(f"Getting movie details for SID: {sid}")
-        sleep_for_random_time()
         response = bypass_douban_verification(url)
         
         # Set correct encoding

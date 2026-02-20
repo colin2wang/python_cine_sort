@@ -75,6 +75,8 @@ def bypass_douban_verification(target_url: str, max_retries: int = 2) -> request
 
         for attempt in range(max_retries):
             try:
+                sleep_for_random_time()
+
                 # Step 1: Request target URL (follow redirects automatically)
                 logger.info(f"Accessing target URL: {target_url}")
                 resp = session.get(target_url, timeout=15)
@@ -114,6 +116,8 @@ def bypass_douban_verification(target_url: str, max_retries: int = 2) -> request
                     'sol': sol_val,
                     'red': red_val
                 }
+
+                sleep_for_random_time()
                 logger.info("Submitting verification form...")
                 verify_resp = session.post(action_url, data=payload, timeout=20)
 

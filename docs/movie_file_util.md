@@ -96,12 +96,13 @@ Scans a directory for movie files and extracts information.
 - `List[MovieFileInfo]`: List of parsed movie file information
 
 **Example:**
+
 ```python
 from pathlib import Path
-from utils.movie_filename_util import MovieFileScanner, MovieFileScannerConfig
+from utils.movie_file_util import MovieFileScanner, MovieFileScannerConfig
 
 # Load configuration
-config = MovieFileScannerConfig(Path("configs/movie_filename_util.yml"))
+config = MovieFileScannerConfig(Path("configs/movie_file_util.yml"))
 scanner = MovieFileScanner(config)
 
 # Scan directory
@@ -155,8 +156,9 @@ Looks for configuration files in this order:
 ## Usage Examples
 
 ### Basic Usage
+
 ```python
-from utils.movie_filename_util import scan_movies_from_directory
+from utils.movie_file_util import scan_movies_from_directory
 
 # Simple usage with auto-config detection
 movies = scan_movies_from_directory("/path/to/movies")
@@ -167,12 +169,13 @@ for movie in movies:
 ```
 
 ### Advanced Usage with Custom Configuration
+
 ```python
 from pathlib import Path
-from utils.movie_filename_util import MovieFileScanner, MovieFileScannerConfig
+from utils.movie_file_util import MovieFileScanner, MovieFileScannerConfig
 
 # Explicit configuration
-config_path = Path("configs/movie_filename_util.yml")
+config_path = Path("configs/movie_file_util.yml")
 config = MovieFileScannerConfig(config_path)
 scanner = MovieFileScanner(config)
 
@@ -187,8 +190,9 @@ for movie_info in movies:
 ```
 
 ### Filtering and Processing
+
 ```python
-from utils.movie_filename_util import scan_movies_from_directory
+from utils.movie_file_util import scan_movies_from_directory
 
 # Get all movies
 all_movies = scan_movies_from_directory("/movies")
@@ -201,6 +205,7 @@ mkv_movies = [m for m in all_movies if m['extension'] == '.mkv']
 
 # Group by year
 from collections import defaultdict
+
 movies_by_year = defaultdict(list)
 for movie in all_movies:
     year_key = movie['year'] or 'Unknown'

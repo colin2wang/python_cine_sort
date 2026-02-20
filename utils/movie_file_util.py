@@ -2,7 +2,7 @@
 
 Used to scan video files in specified directories and extract movie names and year information
 
-filename: movie_filename_util.py
+filename: movie_file_util.py
 """
 
 import re
