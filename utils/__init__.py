@@ -41,6 +41,13 @@ from .movie_file_util import (
     scan_movies_from_directory
 )
 
+# Movie organizer
+from .movie_org_util import (
+    MovieOrgConfig,
+    MovieOrganizer,
+    organize_movie
+)
+
 __all__ = [
     # Logging utilities
     'LogConfig',
@@ -71,4 +78,9 @@ __all__ = [
     'MovieFileScannerConfig',
     'MovieFileScanner',
     'scan_movies_from_directory',
+    
+    # Movie organizer utilities
+    'MovieOrgConfig',
+    'MovieOrganizer',
+    'organize_movie',
 ]
