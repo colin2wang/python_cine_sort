@@ -8,10 +8,10 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from utils.douban_search import get_movie_search_result_html, parse_movie_search_result
-from utils.logging_util import setup_default_logging
+from utils.logging_config import setup_logger
 
 # Initialize logging
-logger = setup_default_logging()
+logger = setup_logger(__name__)
 
 def test_douban_query():
     """Test Douban movie query functionality"""

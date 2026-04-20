@@ -1,14 +1,15 @@
 from pathlib import Path
 
-from utils import MovieFileScannerConfig, MovieFileScanner, get_movie_search_result_html, get_default_logger, \
-    parse_movie_search_result
+from utils.logging_config import setup_logger
+from utils.movie_file_util import MovieFileScannerConfig, MovieFileScanner
+from utils.douban_search import get_movie_search_result_html, parse_movie_search_result
 
 config_path = Path(__file__).parent.parent / "configs" / "movie_file_util.yml"
 config = MovieFileScannerConfig(config_path)
 scanner = MovieFileScanner(config)
 
-# Get default logger
-logger = get_default_logger()
+# Get logger
+logger = setup_logger(__name__)
 
 def do_movie_sort_from_folder(folder_path: str):
     movies = scanner.scan_directory(Path(folder_path))

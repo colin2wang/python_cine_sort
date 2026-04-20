@@ -7,9 +7,9 @@ from urllib.parse import urljoin
 
 import requests
 
-from .logging_util import get_default_logger
+from .logging_config import setup_logger
 
-logger = get_default_logger()
+logger = setup_logger(__name__)
 
 
 def sleep_for_random_time():

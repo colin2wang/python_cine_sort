@@ -13,10 +13,10 @@ from unittest.mock import Mock
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils import get_movie_details_html, parse_movie_details_result
-from utils.logging_util import setup_default_logging
+from utils.logging_config import setup_logger
 
 # Initialize logging
-logger = setup_default_logging()
+logger = setup_logger(__name__)
 
 
 class TestDoubanDetails(unittest.TestCase):

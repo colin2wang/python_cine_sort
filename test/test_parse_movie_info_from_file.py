@@ -9,14 +9,14 @@ import unittest
 import sys
 import os
 
-from utils import setup_default_logging
+from utils.logging_config import setup_logger
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from utils.douban_search import parse_movie_search_result
 
 # Initialize logging
-logger = setup_default_logging()
+logger = setup_logger(__name__)
 
 class TestParseMovieInfoV2(unittest.TestCase):
     """Test updated parse_movie_info function"""

@@ -1,11 +1,11 @@
 import requests
 from typing import Optional
 
-from utils import get_default_logger
+from utils.logging_config import setup_logger
 from utils.common_util import sleep_for_random_time
 
-# Get default logger
-logger = get_default_logger()
+# Get logger
+logger = setup_logger(__name__)
 
 
 def get_movie_search_result_html(name: str, year: str) -> Optional[str]:
@@ -201,7 +201,7 @@ def parse_movie_search_result(html_content: str) -> dict:
                         movie_info['title'] = title_text
                         break
 
-        if movie_info['sid'] is None or movie_info['sid'] is '':
+        if movie_info['sid'] is None or movie_info['sid'] == '':
             logger.error(f"✗ Movie SID not found.")
             return _create_empty_movie_info('Parsing error: Movie SID not found.')
 

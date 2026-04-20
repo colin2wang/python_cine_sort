@@ -1,9 +1,9 @@
 # Movie Organizer Configuration
 # 电影整理工具配置
 
-# Base folder for organizing movies
-# 整理电影的根目录
-base_folder: "I:/我的电影/已整理"
+# Movie folder (both input and output directory)
+# 电影目录（同时作为输入和输出目录）
+movie_folder: "G:/我的下载/!迅雷下载/待整理"
 
 # Directory name format template
 # Available variables: {chinese_title}, {english_title}, {year}

@@ -2,11 +2,11 @@ from typing import Optional
 
 import requests
 
-from utils import get_default_logger
+from utils.logging_config import setup_logger
 from utils.common_util import sleep_for_random_time, bypass_douban_verification
 
-# Get default logger
-logger = get_default_logger()
+# Get logger
+logger = setup_logger(__name__)
 
 
 def get_movie_details_html(sid: str) -> Optional[str]:
@@ -47,6 +47,29 @@ def get_movie_details_html(sid: str) -> Optional[str]:
     except Exception as e:
         logger.error(f"✗ Unknown error: {e} - {sid}")
         return None
+
+def _clean_html_tags(text: str) -> str:
+    """Remove HTML tags from text
+    
+    Args:
+        text (str): Text that may contain HTML tags
+        
+    Returns:
+        str: Text with HTML tags removed
+    """
+    import re
+    # Remove all HTML tags
+    clean_text = re.sub(r'<[^>]+>', '', text)
+    # Decode HTML entities
+    clean_text = clean_text.replace('&nbsp;', ' ')
+    clean_text = clean_text.replace('&amp;', '&')
+    clean_text = clean_text.replace('&lt;', '<')
+    clean_text = clean_text.replace('&gt;', '>')
+    clean_text = clean_text.replace('&quot;', '"')
+    # Clean up extra whitespace
+    clean_text = ' '.join(clean_text.split())
+    return clean_text.strip()
+
 
 def parse_movie_details_result(html_content: str) -> dict:
     """Parse Douban movie details page
@@ -142,11 +165,35 @@ def parse_movie_details_result(html_content: str) -> dict:
                     if json_desc_match:
                         movie_details['description'] = json_desc_match.group(1).strip()
         
-        # Extract original title
+        # Extract original title and aliases
         original_title_pattern = r'又名:</span>([^<]+)'
         original_title_match = re.search(original_title_pattern, html_content)
         if original_title_match:
-            movie_details['original_title'] = original_title_match.group(1).strip()
+            full_aliases = original_title_match.group(1).strip()
+            movie_details['aliases'] = full_aliases  # Store all aliases
+            
+            # Extract the first English title
+            # Split by common separators: /
+            parts = full_aliases.split('/')
+            english_title = ''
+            for part in parts:
+                part = part.strip()
+                # Check if this part is primarily English (no Chinese characters)
+                if part and not re.search(r'[\u4e00-\u9fff]', part):
+                    # This part has no Chinese characters, use it
+                    english_title = part
+                    break
+            
+            if not english_title and parts:
+                # Fallback: use the first part but remove any Chinese text
+                first_part = parts[0].strip()
+                # Remove Chinese text in parentheses or brackets
+                english_title = re.sub(r'[\(（][^\)）]*[\u4e00-\u9fff][^\)）]*[\)）]', '', first_part).strip()
+                # If still contains Chinese, try to extract only English letters, spaces, dots, hyphens
+                if re.search(r'[\u4e00-\u9fff]', english_title):
+                    english_title = re.sub(r'[^a-zA-Z0-9\s\.\-]', '', first_part).strip()
+            
+            movie_details['original_title'] = english_title
         
         # ============ Enhanced Information Extraction ============
         
@@ -211,9 +258,9 @@ def parse_movie_details_result(html_content: str) -> dict:
             awards = []
             for match in award_matches:
                 award_info = {
-                    'event': match[0].strip() if match[0].strip() else '',
-                    'category': match[1].strip() if match[1].strip() else '',
-                    'recipient': match[2].strip() if match[2].strip() else ''
+                    'event': _clean_html_tags(match[0]) if match[0].strip() else '',
+                    'category': _clean_html_tags(match[1]) if match[1].strip() else '',
+                    'recipient': _clean_html_tags(match[2]) if match[2].strip() else ''
                 }
                 if any(award_info.values()):
                     awards.append(award_info)

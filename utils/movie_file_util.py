@@ -12,9 +12,9 @@ from typing import List, Dict, Optional, Set
 
 import yaml
 
-from .logging_util import get_default_logger
+from .logging_config import setup_logger
 
-logger = get_default_logger()
+logger = setup_logger(__name__)
 
 
 @dataclass
@@ -107,7 +107,7 @@ class MovieFileScanner:
 
     def __init__(self, config: Optional[MovieFileScannerConfig] = None):
         self.config = config or MovieFileScannerConfig()
-        self.logger = get_default_logger()
+        self.logger = setup_logger(__name__)
 
     def scan_directory(self, directory: Path, recursive: bool = True) -> List[MovieFileInfo]:
         """Scan movie files in directory"""

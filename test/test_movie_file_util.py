@@ -7,11 +7,11 @@ Movie file scanner test
 import unittest
 from pathlib import Path
 
-from utils import get_default_logger
+from utils.logging_config import setup_logger
 from utils.movie_file_util import MovieFileScanner, MovieFileScannerConfig
 
-# Get default logger
-logger = get_default_logger()
+# Get logger
+logger = setup_logger(__name__)
 
 class TestMovieFileScanner(unittest.TestCase):
     

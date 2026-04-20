@@ -4,22 +4,7 @@ Utility package initialization file
 """
 
 # Logging utilities
-from .logging_util import (
-    LogConfig,
-    setup_logging,
-    get_logger,
-    setup_default_logging,
-    setup_debug_logging,
-    setup_error_logging,
-    get_default_logger,
-    debug,
-    info,
-    warning,
-    error,
-    critical,
-    LogLevelContext,
-    log_exceptions
-)
+from .logging_config import setup_logger
 
 # Douban Search
 from .douban_search import (
@@ -45,25 +30,13 @@ from .movie_file_util import (
 from .movie_org_util import (
     MovieOrgConfig,
     MovieOrganizer,
-    organize_movie
+    organize_movie,
+    organize_movie_by_detail
 )
 
 __all__ = [
     # Logging utilities
-    'LogConfig',
-    'setup_logging',
-    'get_logger',
-    'setup_default_logging',
-    'setup_debug_logging',
-    'setup_error_logging',
-    'get_default_logger',
-    'debug',
-    'info',
-    'warning',
-    'error',
-    'critical',
-    'LogLevelContext',
-    'log_exceptions',
+    'setup_logger',
     
     # Douban Search
     'get_movie_search_result_html',
@@ -83,4 +56,5 @@ __all__ = [
     'MovieOrgConfig',
     'MovieOrganizer',
     'organize_movie',
+    'organize_movie_by_detail',
 ]
