@@ -2,16 +2,18 @@
 
 A comprehensive Python toolkit for automated movie file organization and Douban movie information retrieval with intelligent parsing capabilities.
 
+[CHANGE HISTORY](CHANGE_HISTORY.md) | [API Reference](Douban_API.md) | 
+
 ## Key Features
 
-- 🎬 **Intelligent Movie Search**: Advanced Douban movie querying with automatic verification bypass
-- 📊 **Smart Information Parsing**: Sophisticated HTML content parsing with regex-based extraction
-- 🔧 **Robust Error Handling**: Comprehensive exception management and retry mechanisms
-- 🌐 **Multi-language Support**: Native support for Chinese movie names and international titles
-- 📁 **Advanced File Scanning**: Intelligent movie file detection with configurable pattern matching
-- 🔄 **Anti-bot Automation**: Built-in Proof of Work (PoW) system for automatic Douban verification bypass
-- ⚙️ **Flexible Configuration**: YAML-based configuration system for easy customization
-- 📝 **Comprehensive Logging**: Detailed logging with multiple output formats and levels
+- **Intelligent Movie Search**: Advanced Douban movie querying with automatic verification bypass
+- **Smart Information Parsing**: Sophisticated HTML content parsing with regex-based extraction
+- **Robust Error Handling**: Comprehensive exception management and retry mechanisms
+- **Multi-language Support**: Native support for Chinese movie names and international titles
+- **Advanced File Scanning**: Intelligent movie file detection with configurable pattern matching
+- **Anti-bot Automation**: Built-in Proof of Work (PoW) system for automatic Douban verification bypass
+- **Flexible Configuration**: YAML-based configuration system for easy customization
+- **Comprehensive Logging**: Detailed logging with multiple output formats and levels
 
 ## Project Architecture
 
@@ -310,7 +312,7 @@ For detailed module documentation, please refer to the following guides:
 
 ## API Documentation
 
-For detailed information about Douban API endpoints and parameters, see [douban_query_url.md](douban_query_url.md).
+For detailed information about Douban API endpoints and parameters, see [douban_query_url.md](Douban_API.md).
 
 ## Best Practices
 
@@ -330,7 +332,7 @@ For detailed information about Douban API endpoints and parameters, see [douban_
 
 ## Development Status
 
-✅ **Production Ready Features**:
+**Production Ready Features**:
 - Movie file scanning and parsing
 - Douban search integration
 - HTML content parsing
@@ -338,7 +340,7 @@ For detailed information about Douban API endpoints and parameters, see [douban_
 - Comprehensive test coverage
 - Configuration management
 
-🏗️ **Future Enhancements**:
+**Future Enhancements**:
 - Database integration for persistent storage
 - Web API for remote access
 - Batch processing optimizations

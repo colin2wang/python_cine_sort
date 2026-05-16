@@ -13,6 +13,12 @@ logger = get_default_logger()
 
 
 def sleep_for_random_time():
+    """
+    Sleep for a random time between 0.5 and 1.5 seconds to avoid rate limiting
+    
+    Returns:
+        None: This function does not return any value
+    """
     sleep_time = random.uniform(0.5, 1.5)
     logger.info(f"Sleeping for {sleep_time:.2f} seconds...")
     time.sleep(sleep_time)
@@ -28,7 +34,7 @@ def calculate_nonce(challenge: str, difficulty: int = 4) -> str:
         difficulty (int): Number of leading zeros required (default: 4)
 
     Returns:
-        str: Valid nonce value
+        str: Valid nonce value as a string representation of the integer that solves the proof-of-work puzzle
     """
     nonce = 1
     target_prefix = '0' * difficulty
@@ -57,7 +63,12 @@ def bypass_douban_verification(target_url: str, max_retries: int = 2) -> request
         max_retries (int): Maximum number of retry attempts
 
     Returns:
-        requests.Response: Response object of the target page
+        requests.Response: Response object of the target page containing:
+            - status_code: HTTP status code of the response
+            - text: HTML content of the page as string
+            - url: Final URL after redirects
+            - headers: Response headers dictionary
+            - cookies: Cookies set by the server
 
     Raises:
         RuntimeError: When verification fails after maximum retries

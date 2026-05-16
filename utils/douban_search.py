@@ -16,7 +16,9 @@ def get_movie_search_result_html(name: str, year: str) -> Optional[str]:
         year (str): Movie year
     
     Returns:
-        Optional[str]: HTML response content, returns None on failure
+        Optional[str]: HTML response content as a string, returns None on failure.
+            - On success: Complete HTML content of the search results page
+            - On failure: None
     """
     # Build search URL
     if year:
@@ -67,10 +69,20 @@ def _create_empty_movie_info(error_message: str = None) -> dict:
     """Create empty movie info dictionary
     
     Args:
-        error_message (str, optional): Error message
+        error_message (str, optional): Error message to include in the result
         
     Returns:
-        dict: Empty movie info dictionary
+        dict: Empty movie info dictionary with the following structure:
+            - title (str): Empty string
+            - rating (str): Empty string
+            - directors (list): Empty list
+            - actors (list): Empty list
+            - year (str): Empty string
+            - genres (list): Empty list
+            - original_title (str): Empty string
+            - review_count (str): Empty string
+            - sid (str): Empty string
+            - error (str or None): Error message if provided, otherwise None
     """
     return {
         'title': '',
@@ -94,7 +106,18 @@ def parse_movie_search_result(html_content: str) -> dict:
         html_content (str): Douban search page HTML content
     
     Returns:
-        dict: Parsed movie information
+        dict: Parsed movie information dictionary with the following structure:
+            - title (str): Movie title found in search results
+            - rating (str): Movie rating score (e.g., "8.2")
+            - directors (list): List of director names (usually first person in cast)
+            - actors (list): List of actor names (up to 5 actors)
+            - year (str): Release year (e.g., "2023")
+            - genres (list): List of movie genres (empty in search results, populated from details)
+            - original_title (str): Original title in other languages if available
+            - review_count (str): Number of people who rated the movie
+            - sid (str): Douban movie ID (subject ID)
+            - error (str or None): Error message if parsing failed, otherwise None
+            Note: If parsing fails, returns an empty movie info dict with error field set
     """
     import re
     
@@ -201,7 +224,7 @@ def parse_movie_search_result(html_content: str) -> dict:
                         movie_info['title'] = title_text
                         break
 
-        if movie_info['sid'] is None or movie_info['sid'] is '':
+        if movie_info['sid'] is None or movie_info['sid'] == '':
             logger.error(f"✗ Movie SID not found.")
             return _create_empty_movie_info('Parsing error: Movie SID not found.')
 

@@ -110,7 +110,20 @@ class MovieFileScanner:
         self.logger = get_default_logger()
 
     def scan_directory(self, directory: Path, recursive: bool = True) -> List[MovieFileInfo]:
-        """Scan movie files in directory"""
+        """Scan movie files in directory
+        
+        Args:
+            directory (Path): Directory path to scan for movie files
+            recursive (bool): Whether to scan subdirectories recursively (default: True)
+        
+        Returns:
+            List[MovieFileInfo]: List of MovieFileInfo objects containing:
+                - file_path (Path): Full path to the movie file
+                - movie_name (str): Extracted and cleaned movie name
+                - year (Optional[str]): Extracted release year or None if not found
+                - extension (str): File extension (e.g., '.mp4', '.mkv')
+                - raw_filename (str): Original filename without processing
+        """
         if not directory.exists():
             self.logger.error(f"✗ Directory does not exist: {directory}")
             return []
@@ -132,7 +145,20 @@ class MovieFileScanner:
         return movie_files
 
     def extract_movie_info(self, file_path: Path) -> Optional[MovieFileInfo]:
-        """Extract movie information from filename"""
+        """Extract movie information from filename
+        
+        Args:
+            file_path (Path): Path to the movie file
+            
+        Returns:
+            Optional[MovieFileInfo]: MovieFileInfo object containing extracted information, or None if extraction fails.
+                The MovieFileInfo contains:
+                - file_path (Path): Full path to the movie file
+                - movie_name (str): Extracted and cleaned movie name
+                - year (Optional[str]): Extracted release year or None if not found
+                - extension (str): File extension (e.g., '.mp4', '.mkv')
+                - raw_filename (str): Original filename without processing
+        """
         try:
             filename = file_path.stem
             extension = file_path.suffix.lower()
@@ -173,6 +199,12 @@ class MovieFileScanner:
         2. Normalize separators
         3. Clean up residual artifacts
         4. Validate result
+        
+        Args:
+            filename (str): Original filename (without extension)
+            
+        Returns:
+            str: Cleaned movie name with technical information, brackets, and extra content removed
         """
         original = filename
         processed = filename
@@ -215,7 +247,16 @@ class MovieFileScanner:
         return result
 
     def _extract_year(self, filename: str) -> Optional[str]:
-        """Extract year from filename with validation."""
+        """Extract year from filename with validation.
+        
+        Args:
+            filename (str): Filename to extract year from
+            
+        Returns:
+            Optional[str]: Extracted year as a string (e.g., "2023") or None if no valid year found.
+                The year is validated to be between 1900-2030 and prioritized based on context
+                (prefers years near technical indicators like 1080p, 720p, etc.)
+        """
         # Find all year matches
         matches = list(self.config._year_regex.finditer(filename))
 
@@ -268,7 +309,21 @@ def scan_movies_from_directory(
     config_file: Optional[str] = None,
     recursive: bool = True
 ) -> List[Dict]:
-    """Convenience function: scan directory and return results in dictionary format"""
+    """Convenience function: scan directory and return results in dictionary format
+    
+    Args:
+        directory (str): Directory path to scan for movie files
+        config_file (Optional[str]): Path to configuration YAML file. If None, auto-detects config file.
+        recursive (bool): Whether to scan subdirectories recursively (default: True)
+    
+    Returns:
+        List[Dict]: List of dictionaries, each containing movie file information:
+            - file_path (str): Full path to the movie file
+            - movie_name (str): Extracted and cleaned movie name
+            - year (Optional[str]): Extracted release year or None if not found
+            - extension (str): File extension (e.g., '.mp4', '.mkv')
+            - raw_filename (str): Original filename without processing
+    """
     dir_path = Path(directory)
 
     # Auto-detect config file
