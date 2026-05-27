@@ -24,7 +24,8 @@ class TestParseMovieInfoV2(unittest.TestCase):
     def setUp(self):
         """Preparation before testing - Read actual Douban search result HTML file"""
         # Read actual Douban search result file
-        douban_html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_data/douban_search_result.html')
+        douban_html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                        '../docs/douban_search_result.md')
 
         try:
             with open(douban_html_path, 'r', encoding='utf-8') as f:
