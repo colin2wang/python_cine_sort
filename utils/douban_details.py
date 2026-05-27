@@ -16,7 +16,9 @@ def get_movie_details_html(sid: str) -> Optional[str]:
         sid (str): Movie SID
 
     Returns:
-        Optional[str]: HTML response content, returns None on failure
+        Optional[str]: HTML response content as a string, returns None on failure.
+            - On success: Complete HTML content of the movie details page
+            - On failure: None
     """
     # Build search URL
     url = f'https://movie.douban.com/subject/{sid}/'
@@ -78,7 +80,40 @@ def parse_movie_details_result(html_content: str) -> dict:
         html_content (str): Douban movie details page HTML content
     
     Returns:
-        dict: Parsed movie information including enhanced details
+        dict: Parsed movie information dictionary containing enhanced details with the following structure:
+            - title (str): Movie title in Chinese
+            - rating (str): Average rating score (e.g., "8.5")
+            - year (str): Release year (e.g., "2023")
+            - directors (list): List of director names
+            - actors (list): List of actor names (up to 10)
+            - genres (list): List of movie genres
+            - description (str): Movie plot summary/description
+            - original_title (str): Original title in other languages
+            - country (str): Country/region of production
+            - language (str): Language(s) of the movie
+            - release_dates (list): List of release dates in different regions
+            - runtime (int): Runtime in minutes
+            - imdb_id (str): IMDb identifier
+            - rating_count (int): Number of ratings/votes
+            - rating_distribution (dict): Distribution of ratings by star level:
+                - 5_star (float): Percentage of 5-star ratings
+                - 4_star (float): Percentage of 4-star ratings
+                - 3_star (float): Percentage of 3-star ratings
+                - 2_star (float): Percentage of 2-star ratings
+                - 1_star (float): Percentage of 1-star ratings
+            - poster_url (str): URL to the movie poster image
+            - awards (list): List of award information dictionaries:
+                - event (str): Award event name
+                - category (str): Award category
+                - recipient (str): Award recipient
+            - similar_movies (list): List of similar movie recommendations:
+                - sid (str): Similar movie's SID
+                - title (str): Similar movie's title
+                - rating (float): Similar movie's rating
+            - short_comments_count (int): Number of short comments
+            - reviews_count (int): Number of detailed reviews
+            - top250_rank (int): Ranking in Douban Top 250 (if applicable)
+            Note: Not all fields may be present depending on available data
     """
     import re
     

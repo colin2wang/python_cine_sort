@@ -12,6 +12,20 @@ scanner = MovieFileScanner(config)
 logger = setup_logger(__name__)
 
 def do_movie_sort_from_folder(folder_path: str):
+    """
+    Perform movie sorting from a folder by scanning files and fetching Douban information
+    
+    Args:
+        folder_path (str): Path to the folder containing movie files
+        
+    Returns:
+        None: This function does not return any value. It processes movies and logs information.
+            For each movie file found:
+            - Scans and extracts movie name and year from filename
+            - Searches Douban for movie information
+            - Parses and logs the search results
+            - Logs detailed movie information if successfully retrieved
+    """
     movies = scanner.scan_directory(Path(folder_path))
     for movie in movies:
         result_html = get_movie_search_result_html(movie.movie_name, movie.year)
