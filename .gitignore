@@ -10,3 +10,6 @@ __pycache__/
 
 # Logs
 logs/
+
+# AI Generated Files
+.proxyai/

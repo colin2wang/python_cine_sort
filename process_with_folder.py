@@ -176,6 +176,9 @@ class MovieProcessor:
             # Parse movie details
             movie_details = parse_movie_details_result(details_html)
 
+            # Add search title to details
+            movie_details['search_title'] = search_info['title']
+
             if not movie_details:
                 self.logger.error(f"✗ Failed to parse movie details")
                 result['error'] = "Failed to parse movie details"

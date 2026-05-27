@@ -192,6 +192,7 @@ class MovieOrganizer:
 
             # Extract movie information
             chinese_title = movie_details.get('title', '').strip()
+            search_title = movie_details.get('search_title', '').strip()
             english_title = movie_details.get('original_title', '').strip()
             year = movie_details.get('year', '').strip()
             sid = movie_details.get('sid', '').strip()
@@ -200,15 +201,23 @@ class MovieOrganizer:
 
             # Clean titles for directory naming (remove invalid characters)
             chinese_title_clean = self._clean_filename(chinese_title)
+            search_title_clean = self._clean_filename(search_title)
             english_title_clean = self._clean_filename(english_title) if english_title else ''
             year_clean = year if year else ''
 
             # Generate directory name using format template
-            dir_name = self.config.directory_format.format(
-                chinese_title=chinese_title_clean,
-                english_title=english_title_clean,
-                year=year_clean
-            )
+            if english_title_clean is '':
+                dir_name = self.config.directory_format.format(
+                    chinese_title=chinese_title_clean,
+                    english_title=english_title_clean,
+                    year=year_clean
+                )
+            else:
+                dir_name = self.config.directory_format.format(
+                    chinese_title=search_title_clean,
+                    english_title=english_title_clean,
+                    year=year_clean
+                )
 
             # Remove consecutive dots and trailing dots
             dir_name = re.sub(r'\.{2,}', '.', dir_name).rstrip('.')

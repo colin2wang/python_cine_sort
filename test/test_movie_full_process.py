@@ -53,6 +53,7 @@ class TestMovieFileScanner(unittest.TestCase):
         """Test single filename processing functionality"""
         # Test with sample filenames
         test_filenames = [
+            "阳光电影www.ygdy8.com.无声.BD.1080p.国语中字.mp4",
             "挽救计划 Project Hail Mary.1080p.HD修正中英双字[最新电影www.5266ys.com].mp4",
             # "Inception.2010.720p.HDTV.AAC.mp4",
             # "Interstellar.2014.4K.UHD.avi",

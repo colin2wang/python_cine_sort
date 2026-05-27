@@ -2,16 +2,20 @@
 
 A comprehensive Python toolkit for automated movie file organization and Douban movie information retrieval with intelligent parsing capabilities.
 
+[Change History](CHANGE_HISTORY.md) | 
+
+---
+
 ## Key Features
 
-- 🎬 **Intelligent Movie Search**: Advanced Douban movie querying with automatic verification bypass
-- 📊 **Smart Information Parsing**: Sophisticated HTML content parsing with regex-based extraction
-- 🔧 **Robust Error Handling**: Comprehensive exception management and retry mechanisms
-- 🌐 **Multi-language Support**: Native support for Chinese movie names and international titles
-- 📁 **Advanced File Scanning**: Intelligent movie file detection with configurable pattern matching
-- 🔄 **Anti-bot Automation**: Built-in Proof of Work (PoW) system for automatic Douban verification bypass
-- ⚙️ **Flexible Configuration**: YAML-based configuration system for easy customization
-- 📝 **Comprehensive Logging**: Detailed logging with multiple output formats and levels
+- **Intelligent Movie Search**: Advanced Douban movie querying with automatic verification bypass
+- **Smart Information Parsing**: Sophisticated HTML content parsing with regex-based extraction
+- **Robust Error Handling**: Comprehensive exception management and retry mechanisms
+- **Multi-language Support**: Native support for Chinese movie names and international titles
+- **Advanced File Scanning**: Intelligent movie file detection with configurable pattern matching
+- **Anti-bot Automation**: Built-in Proof of Work (PoW) system for automatic Douban verification bypass
+- **Flexible Configuration**: YAML-based configuration system for easy customization
+- **Comprehensive Logging**: Detailed logging with multiple output formats and levels
 
 ## Project Architecture
 
