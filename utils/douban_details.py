@@ -1,341 +1,414 @@
-from typing import Optional
+import re
+from typing import Optional, Dict, List, Any
 
 import requests
 
+from utils.common_util import bypass_douban_verification
 from utils.logging_config import setup_logger
-from utils.common_util import sleep_for_random_time, bypass_douban_verification
 
 # Get logger
 logger = setup_logger(__name__)
 
 
-def get_movie_details_html(sid: str) -> Optional[str]:
-    """Get Douban movie details page HTML content (automatically handles verification mechanism)
+class DoubanMovieDetailsParser:
+    """Parser for Douban movie details page HTML content."""
 
-    Args:
-        sid (str): Movie SID
+    def __init__(self, html_content: str):
+        """
+        Initialize parser with HTML content.
+        
+        Args:
+            html_content (str): Raw HTML content from Douban movie page
+        """
+        self.html = html_content
+        self.movie_details: Dict[str, Any] = {}
 
-    Returns:
-        Optional[str]: HTML response content as a string, returns None on failure.
-            - On success: Complete HTML content of the movie details page
-            - On failure: None
-    """
-    # Build search URL
-    url = f'https://movie.douban.com/subject/{sid}/'
-    
-    try:
-        # Use function with verification handling to get page content
-        logger.info(f"Getting movie details for SID: {sid}")
-        response = bypass_douban_verification(url)
+    def _extract_single(self, pattern: str, default: Optional[str] = None) -> Optional[str]:
+        """Extract a single match using regex pattern.
         
-        # Set correct encoding
-        response.encoding = 'utf-8'
-        
-        logger.info(f"✓ Successfully retrieved Douban movie details: {sid}")
-        return response.text
-        
-    except requests.exceptions.Timeout:
-        logger.warning(f"✗ Request timeout: {sid}")
-        return None
-    except requests.exceptions.ConnectionError:
-        logger.error(f"✗ Connection error: {sid}")
-        return None
-    except requests.exceptions.HTTPError as e:
-        logger.error(f"✗ HTTP error {e.response.status_code}: {sid}")
-        return None
-    except requests.exceptions.RequestException as e:
-        logger.error(f"✗ Request exception: {e} - {sid}")
-        return None
-    except Exception as e:
-        logger.error(f"✗ Unknown error: {e} - {sid}")
-        return None
-
-def _clean_html_tags(text: str) -> str:
-    """Remove HTML tags from text
-    
-    Args:
-        text (str): Text that may contain HTML tags
-        
-    Returns:
-        str: Text with HTML tags removed
-    """
-    import re
-    # Remove all HTML tags
-    clean_text = re.sub(r'<[^>]+>', '', text)
-    # Decode HTML entities
-    clean_text = clean_text.replace('&nbsp;', ' ')
-    clean_text = clean_text.replace('&amp;', '&')
-    clean_text = clean_text.replace('&lt;', '<')
-    clean_text = clean_text.replace('&gt;', '>')
-    clean_text = clean_text.replace('&quot;', '"')
-    # Clean up extra whitespace
-    clean_text = ' '.join(clean_text.split())
-    return clean_text.strip()
-
-
-def parse_movie_details_result(html_content: str) -> dict:
-    """Parse Douban movie details page
-    
-    Args:
-        html_content (str): Douban movie details page HTML content
-    
-    Returns:
-        dict: Parsed movie information dictionary containing enhanced details with the following structure:
-            - title (str): Movie title in Chinese
-            - rating (str): Average rating score (e.g., "8.5")
-            - year (str): Release year (e.g., "2023")
-            - directors (list): List of director names
-            - actors (list): List of actor names (up to 10)
-            - genres (list): List of movie genres
-            - description (str): Movie plot summary/description
-            - original_title (str): Original title in other languages
-            - country (str): Country/region of production
-            - language (str): Language(s) of the movie
-            - release_dates (list): List of release dates in different regions
-            - runtime (int): Runtime in minutes
-            - imdb_id (str): IMDb identifier
-            - rating_count (int): Number of ratings/votes
-            - rating_distribution (dict): Distribution of ratings by star level:
-                - 5_star (float): Percentage of 5-star ratings
-                - 4_star (float): Percentage of 4-star ratings
-                - 3_star (float): Percentage of 3-star ratings
-                - 2_star (float): Percentage of 2-star ratings
-                - 1_star (float): Percentage of 1-star ratings
-            - poster_url (str): URL to the movie poster image
-            - awards (list): List of award information dictionaries:
-                - event (str): Award event name
-                - category (str): Award category
-                - recipient (str): Award recipient
-            - similar_movies (list): List of similar movie recommendations:
-                - sid (str): Similar movie's SID
-                - title (str): Similar movie's title
-                - rating (float): Similar movie's rating
-            - short_comments_count (int): Number of short comments
-            - reviews_count (int): Number of detailed reviews
-            - top250_rank (int): Ranking in Douban Top 250 (if applicable)
-            Note: Not all fields may be present depending on available data
-    """
-    import re
-    
-    # Parameter validation
-    if html_content is None:
-        logger.error("✗ HTML content is None")
-        return {}
-    
-    if not isinstance(html_content, str):
-        logger.error(f"✗ HTML content type error: {type(html_content)}")
-        return {}
-    
-    try:
-        movie_details = {}
-        
-        # Extract movie title
-        title_pattern = r'<span property="v:itemreviewed">([^<]+)</span>'
-        title_match = re.search(title_pattern, html_content)
-        if title_match:
-            movie_details['title'] = title_match.group(1).strip()
-        
-        # Extract rating
-        rating_pattern = r'<strong class="ll rating_num" property="v:average">([\d.]+)</strong>'
-        rating_match = re.search(rating_pattern, html_content)
-        if rating_match:
-            movie_details['rating'] = rating_match.group(1)
-        
-        # Extract year
-        year_pattern = r'<span class="year">\((\d{4})\)</span>'
-        year_match = re.search(year_pattern, html_content)
-        if year_match:
-            movie_details['year'] = year_match.group(1)
-        
-        # Extract directors
-        director_pattern = r'导演:</span>.*?<a[^>]*>([^<]+)</a>'
-        director_matches = re.findall(director_pattern, html_content, re.DOTALL)
-        if director_matches:
-            movie_details['directors'] = [director.strip() for director in director_matches]
-        
-        # Extract actors
-        actor_pattern = r'主演:</span>.*?<a[^>]*>([^<]+)</a>'
-        actor_matches = re.findall(actor_pattern, html_content, re.DOTALL)
-        if actor_matches:
-            movie_details['actors'] = [actor.strip() for actor in actor_matches[:10]]  # Take first 10
-        
-        # Extract genres
-        genre_pattern = r'<span property="v:genre">([^<]+)</span>'
-        genre_matches = re.findall(genre_pattern, html_content)
-        if genre_matches:
-            movie_details['genres'] = [genre.strip() for genre in genre_matches]
-        
-        # Extract description - 多级降级提取策略
-        # 第一级：提取完整版剧情简介（class="all hidden"）
-        desc_pattern1 = r'<span property="v:summary" class="all hidden">\s*(.*?)\s*</span>'
-        desc_match1 = re.search(desc_pattern1, html_content, re.DOTALL)
-        if desc_match1:
-            description = desc_match1.group(1).strip()
-            # 清理HTML标签和多余空白
-            description = re.sub(r'<[^>]+>', '', description)
-            description = re.sub(r'\s+', ' ', description).strip()
-            if description:
-                movie_details['description'] = description
-        else:
-            # 第二级：提取简短版剧情简介
-            desc_pattern2 = r'<span property="v:summary">\s*(.*?)\s*(?:<br />|</span>)'
-            desc_match2 = re.search(desc_pattern2, html_content, re.DOTALL)
-            if desc_match2:
-                description = desc_match2.group(1).strip()
-                # 清理HTML标签和多余空白
-                description = re.sub(r'<[^>]+>', '', description)
-                description = re.sub(r'\s+', ' ', description).strip()
-                if description:
-                    movie_details['description'] = description
-            else:
-                # 第三级：从meta标签提取description
-                meta_desc_pattern = r'<meta name="description" content="([^">]+)"'
-                meta_desc_match = re.search(meta_desc_pattern, html_content)
-                if meta_desc_match:
-                    movie_details['description'] = meta_desc_match.group(1).strip()
-                else:
-                    # 第四级：从JSON-LD中提取description
-                    json_desc_pattern = r'"description": "([^"]+)"'
-                    json_desc_match = re.search(json_desc_pattern, html_content)
-                    if json_desc_match:
-                        movie_details['description'] = json_desc_match.group(1).strip()
-        
-        # Extract original title and aliases
-        original_title_pattern = r'又名:</span>([^<]+)'
-        original_title_match = re.search(original_title_pattern, html_content)
-        if original_title_match:
-            full_aliases = original_title_match.group(1).strip()
-            movie_details['aliases'] = full_aliases  # Store all aliases
+        Args:
+            pattern (str): Regex pattern to search for
+            default (Optional[str]): Default value if no match found
             
-            # Extract the first English title
-            # Split by common separators: /
-            parts = full_aliases.split('/')
-            english_title = ''
-            for part in parts:
-                part = part.strip()
-                # Check if this part is primarily English (no Chinese characters)
-                if part and not re.search(r'[\u4e00-\u9fff]', part):
-                    # This part has no Chinese characters, use it
-                    english_title = part
-                    break
+        Returns:
+            Optional[str]: Extracted text or default value
+        """
+        import re
+        match = re.search(pattern, self.html)
+        return match.group(1).strip() if match else default
+
+    def _extract_multiple(self, pattern: str) -> List[str]:
+        """Extract all matches using regex pattern.
+        
+        Args:
+            pattern (str): Regex pattern to search for
             
-            if not english_title and parts:
-                # Fallback: use the first part but remove any Chinese text
-                first_part = parts[0].strip()
-                # Remove Chinese text in parentheses or brackets
-                english_title = re.sub(r'[\(（][^\)）]*[\u4e00-\u9fff][^\)）]*[\)）]', '', first_part).strip()
-                # If still contains Chinese, try to extract only English letters, spaces, dots, hyphens
-                if re.search(r'[\u4e00-\u9fff]', english_title):
-                    english_title = re.sub(r'[^a-zA-Z0-9\s\.\-]', '', first_part).strip()
+        Returns:
+            List[str]: List of extracted text values
+        """
+        import re
+        matches = re.findall(pattern, self.html)
+        return [match.strip() for match in matches]
+
+    def _extract_directors(self) -> None:
+        """Extract director information from HTML."""
+        pattern = r'导演:</span>.*?<a[^>]*>([^<]+)</a>'
+        directors = self._extract_multiple(pattern)
+        if directors:
+            self.movie_details['directors'] = [d.strip() for d in directors]
+
+    def _extract_actors(self) -> None:
+        """Extract actor information from HTML (max 10 actors)."""
+        pattern = r'主演:</span>.*?<a[^>]*>([^<]+)</a>'
+        actors = self._extract_multiple(pattern)
+        if actors:
+            self.movie_details['actors'] = [a.strip() for a in actors[:10]]
+
+    def _extract_genres(self) -> None:
+        """Extract movie genres from HTML."""
+        pattern = r'<span property="v:genre">([^<]+)</span>'
+        genres = self._extract_multiple(pattern)
+        if genres:
+            self.movie_details['genres'] = [g.strip() for g in genres]
+
+    def _extract_description(self) -> None:
+        """Extract movie description with multi-level fallback strategy.
+        
+        Strategy priority:
+        1. Full version summary (class="all hidden")
+        2. Short version summary
+        3. Meta tag description
+        4. JSON-LD description
+        """
+        import re
+        
+        # Level 1: Full version plot summary
+        desc_pattern = r'<span property="v:summary" class="all hidden">\s*(.*?)\s*</span>'
+        match = re.search(desc_pattern, self.html, re.DOTALL)
+        if match:
+            self.movie_details['description'] = self._clean_html(match.group(1))
+            return
+        
+        # Level 2: Short version plot summary
+        desc_pattern = r'<span property="v:summary">\s*(.*?)\s*(?:<br />|</span>)'
+        match = re.search(desc_pattern, self.html, re.DOTALL)
+        if match:
+            self.movie_details['description'] = self._clean_html(match.group(1))
+            return
+        
+        # Level 3: Meta tag description
+        desc_pattern = r'<meta name="description" content="([^">]+)"'
+        match = re.search(desc_pattern, self.html)
+        if match:
+            self.movie_details['description'] = match.group(1).strip()
+            return
+        
+        # Level 4: JSON-LD description
+        json_desc_pattern = r'"description":\s*"([^"]+)"'
+        match = re.search(json_desc_pattern, self.html)
+        if match:
+            self.movie_details['description'] = match.group(1).strip()
+
+    def _extract_english_title(self) -> None:
+        """Extract English/original title from aliases."""
+        import re
+        
+        pattern = r'又名:</span>([^<]+)'
+        match = re.search(pattern, self.html)
+        if not match:
+            return
+        
+        full_aliases = match.group(1).strip()
+        self.movie_details['aliases'] = full_aliases
+        
+        # Split by common separators and find English-only part
+        parts = [p.strip() for p in full_aliases.split('/') if p.strip()]
+        
+        for part in parts:
+            # Check if part is primarily English (no Chinese characters)
+            if not re.search(r'[\u4e00-\u9fff]', part):
+                self.movie_details['original_title'] = part
+                return
+        
+        # Fallback: extract English text from first part
+        if parts:
+            first_part = parts[0]
+            english_title = re.sub(
+                r'[(（][^)）]*[一-鿿][^)）]*[)）]', '', first_part
+            ).strip()
             
-            movie_details['original_title'] = english_title
+            # If still contains Chinese, extract only English characters
+            if re.search(r'[\u4e00-\u9fff]', english_title):
+                english_title = re.sub(
+                    r'[^a-zA-Z0-9\s.\-]', '', first_part
+                ).strip()
+            
+            self.movie_details['original_title'] = english_title
+
+    def _extract_rating_distribution(self) -> None:
+        """Extract rating distribution by star level."""
+        pattern = r'<span class="rating_per">([\d.]+)%</span>'
+        matches = re.findall(pattern, self.html)
         
-        # ============ Enhanced Information Extraction ============
-        
-        # Extract country/region
-        country_pattern = r'制片国家/地区:</span>([^<]+)'
-        country_match = re.search(country_pattern, html_content)
-        if country_match:
-            movie_details['country'] = country_match.group(1).strip()
-        
-        # Extract language
-        language_pattern = r'语言:</span>([^<]+)'
-        language_match = re.search(language_pattern, html_content)
-        if language_match:
-            movie_details['language'] = language_match.group(1).strip()
-        
-        # Extract release dates
-        release_date_pattern = r'<span property="v:initialReleaseDate"[^>]*>([^<]+)</span>'
-        release_dates = re.findall(release_date_pattern, html_content)
-        if release_dates:
-            movie_details['release_dates'] = [date.strip() for date in release_dates]
-        
-        # Extract runtime
-        runtime_pattern = r'<span property="v:runtime"[^>]*>(\d+)'
-        runtime_match = re.search(runtime_pattern, html_content)
-        if runtime_match:
-            movie_details['runtime'] = int(runtime_match.group(1))
-        
-        # Extract IMDb ID
-        imdb_pattern = r'IMDb:</span>([^<\s]+)'
-        imdb_match = re.search(imdb_pattern, html_content)
-        if imdb_match:
-            movie_details['imdb_id'] = imdb_match.group(1).strip()
-        
-        # Extract rating count
-        rating_count_pattern = r'<span property="v:votes">(\d+)</span>'
-        rating_count_match = re.search(rating_count_pattern, html_content)
-        if rating_count_match:
-            movie_details['rating_count'] = int(rating_count_match.group(1))
-        
-        # Extract rating distribution
-        rating_dist_pattern = r'<span class="rating_per">([\d.]+)%</span>'
-        rating_dist_matches = re.findall(rating_dist_pattern, html_content)
-        if len(rating_dist_matches) >= 5:
-            movie_details['rating_distribution'] = {
-                '5_star': float(rating_dist_matches[0]),
-                '4_star': float(rating_dist_matches[1]),
-                '3_star': float(rating_dist_matches[2]),
-                '2_star': float(rating_dist_matches[3]),
-                '1_star': float(rating_dist_matches[4])
+        if len(matches) >= 5:
+            self.movie_details['rating_distribution'] = {
+                '5_star': float(matches[0]),
+                '4_star': float(matches[1]),
+                '3_star': float(matches[2]),
+                '2_star': float(matches[3]),
+                '1_star': float(matches[4])
             }
+
+    def _extract_awards(self) -> None:
+        """Extract award information from HTML."""
+        pattern = r'<ul class="award">.*?<li>(.*?)</li>.*?<li>(.*?)</li>.*?<li>(.*?)</li>'
+        matches = re.findall(pattern, self.html, re.DOTALL)
         
-        # Extract poster image URL
-        poster_pattern = r'<img src="([^"]+)"[^>]*title="点击看更多海报"'
-        poster_match = re.search(poster_pattern, html_content)
-        if poster_match:
-            movie_details['poster_url'] = poster_match.group(1).strip()
-        
-        # Extract awards information
-        award_pattern = r'<ul class="award">.*?<li>(.*?)</li>.*?<li>(.*?)</li>.*?<li>(.*?)</li>'
-        award_matches = re.findall(award_pattern, html_content, re.DOTALL)
-        if award_matches:
-            awards = []
-            for match in award_matches:
+        awards = []
+        for match in matches:
+            if len(match) >= 3:
                 award_info = {
-                    'event': _clean_html_tags(match[0]) if match[0].strip() else '',
-                    'category': _clean_html_tags(match[1]) if match[1].strip() else '',
-                    'recipient': _clean_html_tags(match[2]) if match[2].strip() else ''
+                    'event': self._clean_html(match[0]),
+                    'category': self._clean_html(match[1]),
+                    'recipient': self._clean_html(match[2])
                 }
                 if any(award_info.values()):
                     awards.append(award_info)
-            if awards:
-                movie_details['awards'] = awards
         
-        # Extract similar movies recommendation
-        similar_pattern = r'<a href="https://movie.douban.com/subject/(\d+)/[^>]*>.*?<img src="[^"]+" alt="([^"]+)" />.*?<span class="subject-rate">([\d.]+)</span>'
-        similar_matches = re.findall(similar_pattern, html_content, re.DOTALL)
-        if similar_matches:
-            similar_movies = []
-            for sid, title, rating in similar_matches[:10]:  # Top 10 similar movies
-                similar_movies.append({
-                    'sid': sid,
-                    'title': title.strip(),
-                    'rating': float(rating)
-                })
-            movie_details['similar_movies'] = similar_movies
+        if awards:
+            self.movie_details['awards'] = awards
+
+    def _extract_similar_movies(self) -> None:
+        """Extract similar movie recommendations (max 10)."""
+        pattern = r'<a href="https://movie\.douban\.com/subject/(\d+)/[^>]*>.*?<img src="[^"]+" alt="([^"]+)" />.*?<span class="subject-rate">([\d.]+)</span>'
+        matches = re.findall(pattern, self.html, re.DOTALL)
         
-        # Extract short comments count
-        short_comments_pattern = r'<a href="https://movie.douban.com/subject/\d+/comments[^>]*>全部 (\d+) 条</a>'
-        short_comments_match = re.search(short_comments_pattern, html_content)
-        if short_comments_match:
-            movie_details['short_comments_count'] = int(short_comments_match.group(1))
+        similar_movies = []
+        for sid, title, rating in matches[:10]:
+            similar_movies.append({
+                'sid': sid,
+                'title': title.strip(),
+                'rating': float(rating)
+            })
         
-        # Extract reviews count
-        reviews_pattern = r'<a href="reviews">全部 (\d+) 条</a>'
-        reviews_match = re.search(reviews_pattern, html_content)
-        if reviews_match:
-            movie_details['reviews_count'] = int(reviews_match.group(1))
+        if similar_movies:
+            self.movie_details['similar_movies'] = similar_movies
+
+    @staticmethod
+    def _clean_html(text: str) -> str:
+        """Remove HTML tags and decode entities from text.
         
-        # Extract Top250 ranking if exists
-        top250_pattern = r'<div class="top250"><span class="top250-no">No.(\d+)</span>'
-        top250_match = re.search(top250_pattern, html_content)
-        if top250_match:
-            movie_details['top250_rank'] = int(top250_match.group(1))
+        Args:
+            text (str): Text potentially containing HTML
+            
+        Returns:
+            str: Cleaned text with HTML removed
+        """
+        import re
         
-        logger.info(f"✓ Successfully parsed movie details: {movie_details.get('title', 'Unknown')}")
-        return movie_details
+        if not text:
+            return ""
         
+        # Remove all HTML tags
+        clean_text = re.sub(r'<[^>]+>', '', text)
+        
+        # Decode common HTML entities
+        html_entities = {
+            '&nbsp;': ' ',
+            '&': '&',
+            '<': '<',
+            '>': '>',
+            '"': '"',
+            '&#39;': "'"
+        }
+        
+        for entity, char in html_entities.items():
+            clean_text = clean_text.replace(entity, char)
+        
+        # Clean up extra whitespace
+        return ' '.join(clean_text.split()).strip()
+
+    def parse(self) -> Dict[str, Any]:
+        """
+        Parse all movie details from HTML content.
+        
+        Returns:
+            Dict[str, Any]: Dictionary containing extracted movie information
+        """
+        if not self.html:
+            logger.error("HTML content is empty or None")
+            return {}
+
+        try:
+            # Basic movie information
+            title = self._extract_single(r'<span property="v:itemreviewed">([^<]+)</span>')
+            if title:
+                self.movie_details['title'] = title
+            
+            rating = self._extract_single(
+                r'<strong class="ll rating_num" property="v:average">([\d.]+)</strong>'
+            )
+            if rating:
+                self.movie_details['rating'] = rating
+            
+            year = self._extract_single(r'<span class="year">\((\d{4})\)</span>')
+            if year:
+                self.movie_details['year'] = year
+            
+            # Extract lists of items
+            self._extract_directors()
+            self._extract_actors()
+            self._extract_genres()
+            
+            # Extract description with fallback strategy
+            self._extract_description()
+            
+            # Extract English/original title
+            self._extract_english_title()
+            
+            # Enhanced information extraction
+            country = self._extract_single(r'制片国家/地区:</span>([^<]+)')
+            if country:
+                self.movie_details['country'] = country
+            
+            language = self._extract_single(r'语言:</span>([^<]+)')
+            if language:
+                self.movie_details['language'] = language
+            
+            # Extract release dates
+            release_dates = self._extract_multiple(
+                r'<span property="v:initialReleaseDate"[^>]*>([^<]+)</span>'
+            )
+            if release_dates:
+                self.movie_details['release_dates'] = [d.strip() for d in release_dates]
+            
+            # Extract runtime
+            runtime = self._extract_single(r'<span property="v:runtime"[^>]*>(\d+)')
+            if runtime:
+                self.movie_details['runtime'] = int(runtime)
+            
+            # Extract IMDb ID
+            imdb_id = self._extract_single(r'IMDb:</span>([^<\s]+)')
+            if imdb_id:
+                self.movie_details['imdb_id'] = imdb_id
+            
+            # Extract rating count
+            rating_count = self._extract_single(
+                r'<span property="v:votes">(\d+)</span>'
+            )
+            if rating_count:
+                self.movie_details['rating_count'] = int(rating_count)
+            
+            # Extract rating distribution
+            self._extract_rating_distribution()
+            
+            # Extract poster URL
+            poster_url = self._extract_single(
+                r'<img[^>]+src="([^"]+)"[^>]*title="点击看更多海报"'
+            )
+            if poster_url:
+                self.movie_details['poster_url'] = poster_url
+            
+            # Extract awards information
+            self._extract_awards()
+            
+            # Extract similar movies recommendation
+            self._extract_similar_movies()
+            
+            # Extract comment/review counts
+            short_comments = self._extract_single(
+                r'<a href="https://movie\.douban\.com/subject/\d+/comments[^>]*>全部 (\d+) 条</a>'
+            )
+            if short_comments:
+                self.movie_details['short_comments_count'] = int(short_comments)
+            
+            reviews = self._extract_single(r'<a href="reviews">全部 (\d+) 条</a>')
+            if reviews:
+                self.movie_details['reviews_count'] = int(reviews)
+            
+            # Extract Top250 ranking
+            top250_rank = self._extract_single(
+                r'<div class="top250"><span class="top250-no">No\.(\d+)</span>'
+            )
+            if top250_rank:
+                self.movie_details['top250_rank'] = int(top250_rank)
+            
+            title_display = self.movie_details.get('title', 'Unknown')
+            logger.info(f"Successfully parsed movie details: {title_display}")
+            return self.movie_details
+            
+        except Exception as e:
+            logger.error(f"Error parsing movie details: {e}")
+            return {}
+
+
+def get_movie_details_html(sid: str) -> Optional[str]:
+    """
+    Get Douban movie details page HTML content with automatic verification handling.
+    
+    Args:
+        sid (str): Movie SID identifier
+        
+    Returns:
+        Optional[str]: HTML response content as string, or None on failure
+    """
+    url = f'https://movie.douban.com/subject/{sid}/'
+    
+    try:
+        logger.info(f"Getting movie details for SID: {sid}")
+        response = bypass_douban_verification(url)
+        response.encoding = 'utf-8'
+        
+        logger.info(f"Successfully retrieved Douban movie details: {sid}")
+        return response.text
+        
+    except requests.exceptions.Timeout:
+        logger.warning(f"Request timeout: {sid}")
+        return None
+    except requests.exceptions.ConnectionError:
+        logger.error(f"Connection error: {sid}")
+        return None
+    except requests.exceptions.HTTPError as e:
+        logger.error(f"HTTP error {e.response.status_code}: {sid}")
+        return None
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Request exception: {e} - {sid}")
+        return None
     except Exception as e:
-        logger.error(f"✗ Error parsing movie details: {e}")
-        return {}
+        logger.error(f"Unknown error: {e} - {sid}")
+        return None
+
+
+def parse_movie_details_result(html_content: str) -> Dict[str, Any]:
+    """
+    Parse Douban movie details page HTML content.
+    
+    Args:
+        html_content (str): Raw HTML content from Douban movie page
+        
+    Returns:
+        Dict[str, Any]: Dictionary containing extracted movie information including:
+            - title (str): Movie title in Chinese
+            - rating (str): Average rating score
+            - year (str): Release year
+            - directors (list): List of director names
+            - actors (list): List of actor names (max 10)
+            - genres (list): List of movie genres
+            - description (str): Movie plot summary
+            - original_title (str): Original title in other languages
+            - country (str): Production country/region
+            - language (str): Movie language(s)
+            - release_dates (list): Release dates in different regions
+            - runtime (int): Runtime in minutes
+            - imdb_id (str): IMDb identifier
+            - rating_count (int): Number of ratings
+            - rating_distribution (dict): Rating distribution by star level
+            - poster_url (str): Movie poster image URL
+            - awards (list): List of award information
+            - similar_movies (list): Similar movie recommendations
+            - short_comments_count (int): Number of short comments
+            - reviews_count (int): Number of detailed reviews
+            - top250_rank (int): Douban Top 250 ranking
+    """
+    parser = DoubanMovieDetailsParser(html_content)
+    return parser.parse()

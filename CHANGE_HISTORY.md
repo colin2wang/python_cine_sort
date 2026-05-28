@@ -19,6 +19,22 @@ This document records all significant changes to the Music Library Organizer pro
 
 ---
 
+## 2026-05-27
+
+### Douban Result Documentation Enhancement
+- Moved Douban search result HTML to markdown documentation (`docs/douban_search_result.md`)
+- Moved Douban details result HTML to markdown documentation (`docs/douban_details_result.md`)
+- Updated test files to reference new markdown file paths
+- Improved test data organization for better maintainability
+
+### Project Documentation Setup
+- Added CHANGE_HISTORY.md for tracking project changes
+- Added PROXYAI.md for AI assistant proxy configuration documentation
+- Updated README.md with current project structure and documentation links
+- Modified process_with_folder.py script with latest improvements
+
+---
+
 ## 2024-04-18
 
 ### Initial Documentation Setup
@@ -97,4 +113,3 @@ This document records all significant changes to the Music Library Organizer pro
 - Added comprehensive test framework and data files
 
 ---
-

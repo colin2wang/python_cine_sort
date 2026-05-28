@@ -4,8 +4,8 @@
 # Movie folder (both input and output directory)
 # 电影目录（同时作为输入和输出目录）
 #movie_folder: "G:/我的下载/!迅雷下载/待整理"
-#movie_folder: "K:/临时暂存/临时影视/临时电影/[!TBD]"
-movie_folder: "K:/临时暂存/临时影视/临时电影/[!Test]"
+movie_folder: "K:/临时暂存/临时影视/临时电影/[!TBD]"
+#movie_folder: "K:/临时暂存/临时影视/临时电影/[!Test]"
 
 # Directory name format template
 # Available variables: {chinese_title}, {english_title}, {year}
