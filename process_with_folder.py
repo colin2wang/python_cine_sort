@@ -33,7 +33,7 @@ class MovieProcessor:
         Args:
             config_dir: Directory containing configuration files
         """
-        self.config_dir = config_dir or Path(__file__).parent / "configs"
+        self.config_dir = config_dir or Path(__file__).parent / "config"
         self.logger = setup_logger(__name__)
 
         # Initialize scanner
