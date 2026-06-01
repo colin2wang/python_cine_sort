@@ -28,7 +28,7 @@ python_cine_sort/
 │   ├── douban_search.py        # Core Douban search functionality
 │   ├── logging_util.py         # Advanced logging system
 │   └── movie_filename_util.py  # Movie file scanning and parsing
-├── test/                       # Comprehensive test suite
+├── tests/                      # Comprehensive test suite
 │   ├── test_douban_details.py
 │   ├── test_douban_search.py
 │   ├── test_movie_filename_util.py
@@ -36,7 +36,7 @@ python_cine_sort/
 │   └── test_parse_movie_info_from_file.py
 ├── test_data/                  # Test data and fixtures
 │   └── douban_search_result.html
-├── configs/                    # Configuration files
+├── config/                     # Configuration files
 │   └── movie_filename_util.yml
 ├── douban_query_url.md         # Detailed Douban API documentation
 ├── pyproject.toml              # Project configuration and dependencies
@@ -65,7 +65,7 @@ pip install requests>=2.32.5 beautifulsoup4>=4.14.3 pyyaml>=6.0
 
 ### Configuration Setup
 
-Create a configuration file at `configs/movie_filename_util.yml`:
+Create a configuration file at `config/movie_filename_util.yml`:
 
 ```yaml
 extensions:
@@ -123,7 +123,7 @@ from pathlib import Path
 from utils.movie_file_util import MovieFileScanner, MovieFileScannerConfig
 
 # Load configuration
-config_path = Path("configs/movie_file_util.yml")
+config_path = Path("config/movie_file_util.yml")
 config = MovieFileScannerConfig(config_path)
 scanner = MovieFileScanner(config)
 
@@ -167,15 +167,15 @@ Execute the comprehensive test suite:
 
 ```bash
 # Run all tests
-python -m unittest discover test/
+python -m unittest discover tests/
 
 # Run specific test modules
-python test/test_douban_search.py
-python test/test_movie_file_util.py
-python test/test_movie_full_process.py
+python tests/test_douban_search.py
+python tests/test_movie_file_util.py
+python tests/test_movie_full_process.py
 
 # Run with verbose output
-python -m unittest discover test/ -v
+python -m unittest discover tests/ -v
 ```
 
 ## Module Reference

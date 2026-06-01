@@ -1,6 +1,6 @@
 # Movie Filename Utility Documentation
 
-This document describes the usage and return formats of the movie filename scanning functionality in `movie_filename_util.py`, using the actual configuration from `configs/movie_filename_util.yml`.
+This document describes the usage and return formats of the movie filename scanning functionality in `movie_filename_util.py`, using the actual configuration from `config/movie_filename_util.yml`.
 
 ## Overview
 
@@ -36,7 +36,7 @@ MovieFileInfo(
 
 ### 2. Configuration System
 
-The scanner uses `configs/movie_filename_util.yml` for pattern definitions:
+The scanner uses `config/movie_filename_util.yml` for pattern definitions:
 
 #### File Extensions Supported
 ```yaml
@@ -102,7 +102,7 @@ from pathlib import Path
 from utils.movie_file_util import MovieFileScanner, MovieFileScannerConfig
 
 # Load configuration
-config = MovieFileScannerConfig(Path("configs/movie_file_util.yml"))
+config = MovieFileScannerConfig(Path("config/movie_file_util.yml"))
 scanner = MovieFileScanner(config)
 
 # Scan directory
@@ -175,7 +175,7 @@ from pathlib import Path
 from utils.movie_file_util import MovieFileScanner, MovieFileScannerConfig
 
 # Explicit configuration
-config_path = Path("configs/movie_file_util.yml")
+config_path = Path("config/movie_file_util.yml")
 config = MovieFileScannerConfig(config_path)
 scanner = MovieFileScanner(config)
 
@@ -380,6 +380,6 @@ print("Quality Distribution:", dict(qualities))
 ## Configuration File Location
 
 The default configuration file should be located at:
-`configs/movie_filename_util.yml`
+`config/movie_filename_util.yml`
 
 This path is automatically detected by the convenience functions.

@@ -168,6 +168,7 @@ class MovieOrganizer:
                 containing fields like:
                 - title: Chinese title
                 - original_title: Original/English title
+                - search_title: Search title used for directory naming when original_title is empty
                 - year: Release year
                 - rating: Douban rating
                 - description: Movie description/plot summary
@@ -206,7 +207,7 @@ class MovieOrganizer:
             year_clean = year if year else ''
 
             # Generate directory name using format template
-            if english_title_clean is '':
+            if english_title_clean == '':
                 dir_name = self.config.directory_format.format(
                     chinese_title=chinese_title_clean,
                     english_title=english_title_clean,
@@ -446,7 +447,7 @@ def organize_movie(
         config = MovieOrgConfig(Path(config_file))
     else:
         # Auto-detect configuration file
-        config_path = Path(__file__).parent.parent / "configs" / "movie_org_util.yml"
+        config_path = Path(__file__).parent.parent / "config" / "movie_org_util.yml"
         if config_path.exists():
             config = MovieOrgConfig(config_path)
         else:
@@ -475,7 +476,7 @@ def organize_movie_by_detail(
         config = MovieOrgConfig(Path(config_file))
     else:
         # Auto-detect configuration file
-        config_path = Path(__file__).parent.parent / "configs" / "movie_org_util.yml"
+        config_path = Path(__file__).parent.parent / "config" / "movie_org_util.yml"
         if config_path.exists():
             config = MovieOrgConfig(config_path)
         else:

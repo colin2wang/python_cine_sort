@@ -1,0 +1,32 @@
+# Test Configuration
+# 测试配置文件
+
+# Test output directory (relative to project root)
+# 测试输出目录（相对项目根目录）
+test_output_dir: "./test-output"
+
+# ==================================================
+# Movie Organizer Config for Tests (movie_org_util)
+# ==================================================
+
+# Default movie folder (will be resolved relative to project root during test setup)
+# 默认电影目录（测试初始化时会解析为绝对路径）
+movie_folder: "./test-output"
+
+# Directory name format template
+# Available variables: {chinese_title}, {english_title}, {year}
+# 目录名称格式模板
+# 可用变量：{chinese_title}, {english_title}, {year}
+directory_format: "{chinese_title}.{english_title}.{year}"
+
+# File encoding for text files
+# 文本文件编码
+file_encoding: "utf-8"
+
+# Whether to create rating.txt file
+# 是否创建评分文件
+create_rating_file: true
+
+# Whether to create sid.txt file
+# 是否创建SID文件
+create_sid_file: true

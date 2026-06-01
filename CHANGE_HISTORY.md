@@ -57,7 +57,7 @@ This document records all significant changes to the Music Library Organizer pro
 
 ### Movie Organization Utility Release
 - Added movie organization utility module (`utils/movie_org_util.py`)
-- Created configuration file `configs/movie_org_util.yml`
+- Created configuration file `config/movie_org_util.yml`
 - Implemented comprehensive testing framework for movie organization features
 - Added tests for full process workflow
 

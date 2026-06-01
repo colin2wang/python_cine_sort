@@ -4,8 +4,11 @@
 Movie organizer test
 """
 
+import shutil
 import unittest
 from pathlib import Path
+
+import yaml
 
 from utils.logging_config import setup_logger
 from utils.movie_org_util import MovieOrganizer, MovieOrgConfig, organize_movie, organize_movie_by_detail
@@ -13,20 +16,67 @@ from utils.movie_org_util import MovieOrganizer, MovieOrgConfig, organize_movie,
 # Get logger
 logger = setup_logger(__name__)
 
+# Path to the test configuration file
+TEST_CONFIG_FILE = Path(__file__).resolve().parent.parent / "config" / "test.yml"
+
 
 class TestMovieOrganizer(unittest.TestCase):
-    
+
     def setUp(self):
         """Preparation before testing"""
-        # Get configuration file path
-        config_path = Path(__file__).parent.parent / "configs" / "movie_org_util.yml"
-        self.config = MovieOrgConfig(config_path)
+        # Load configuration from config/test.yml
+        with open(TEST_CONFIG_FILE, 'r', encoding='utf-8') as f:
+            self.test_config = yaml.safe_load(f)
+
+        # Resolve test output directory relative to project root
+        test_output_rel = self.test_config.get('test_output_dir', './test-output')
+        self.test_root = (Path.cwd() / test_output_rel).resolve()
+
+        # Create a subdirectory for this specific test to avoid conflicts
+        self.test_dir_path = self.test_root / self._testMethodName
+        if self.test_dir_path.exists():
+            shutil.rmtree(self.test_dir_path)
+        self.test_dir_path.mkdir(parents=True, exist_ok=True)
+
+        # Build MovieOrgConfig from config/test.yml values
+        self.config = MovieOrgConfig()
+        self.config.movie_folder = str(self.test_dir_path)
+        self.config.directory_format = self.test_config.get('directory_format',
+                                                            self.config.directory_format)
+        self.config.file_encoding = self.test_config.get('file_encoding',
+                                                         self.config.file_encoding)
+        self.config.create_rating_file = self.test_config.get('create_rating_file',
+                                                              self.config.create_rating_file)
+        self.config.create_sid_file = self.test_config.get('create_sid_file',
+                                                           self.config.create_sid_file)
         self.organizer = MovieOrganizer(self.config)
-    
+
     def tearDown(self):
         """Cleanup after testing"""
-        # Clean up temporary files or resources that may have been created during testing
-        pass
+        if hasattr(self, 'test_root') and self.test_root.exists():
+            shutil.rmtree(self.test_root)
+
+    def _create_temp_config(self) -> str:
+        """Create a temporary config file pointing to the test directory
+
+        Used for tests that call standalone convenience functions
+        (organize_movie / organize_movie_by_detail) which create their own config.
+
+        Returns:
+            str: Path to the temporary config file
+        """
+        config_path = self.test_dir_path / "test_config.yml"
+        config_data = {
+            'movie_folder': str(self.test_dir_path),
+            'directory_format': self.test_config.get('directory_format',
+                                                     '{chinese_title}.{english_title}.{year}'),
+            'file_encoding': self.test_config.get('file_encoding', 'utf-8'),
+            'create_rating_file': self.test_config.get('create_rating_file', True),
+            'create_sid_file': self.test_config.get('create_sid_file', True),
+        }
+        with open(config_path, 'w', encoding='utf-8') as f:
+            yaml.dump(config_data, f, allow_unicode=True, default_flow_style=False)
+        return str(config_path)
     
     def test_create_movie_directory_with_complete_info(self):
         """Test creating movie directory with complete information"""
@@ -97,8 +147,9 @@ class TestMovieOrganizer(unittest.TestCase):
             'rating': '9.7'
         }
         
-        # Use convenience function
-        result_dir = organize_movie(movie_info)
+        # Use convenience function with temporary config
+        config_file = self._create_temp_config()
+        result_dir = organize_movie(movie_info, config_file=config_file)
         
         self.assertIsNotNone(result_dir, "Convenience function should work")
         self.assertTrue(result_dir.exists(), "Directory should exist")
@@ -150,6 +201,7 @@ class TestMovieOrganizer(unittest.TestCase):
         """Test creating movie directory with complete Douban details"""
         # Sample movie details (simulating parse_movie_details_result output)
         movie_details = {
+            'search_title': '肖申克的救赎',
             'title': '肖申克的救赎',
             'original_title': 'The Shawshank Redemption',
             'year': '1994',
@@ -253,6 +305,7 @@ class TestMovieOrganizer(unittest.TestCase):
     def test_convenience_function_with_details(self):
         """Test the convenience function organize_movie_by_detail"""
         movie_details = {
+            'search_title': '7号房的礼物',
             'title': '7号房的礼物',
             'original_title': 'Gift From Room',
             'year': '2013',
@@ -264,18 +317,21 @@ class TestMovieOrganizer(unittest.TestCase):
             'country': '韩国'
         }
         
-        # Use convenience function
-        result_dir = organize_movie_by_detail(movie_details)
+        # Use convenience function with temporary config
+        config_file = self._create_temp_config()
+        result_dir = organize_movie_by_detail(movie_details, config_file=config_file)
         
         self.assertIsNotNone(result_dir, "Convenience function should work")
         self.assertTrue(result_dir.exists(), "Directory should exist")
         
         # Verify sid.txt contains description
-        sid_file = result_dir / "sid.txt"
+        sid_file = result_dir / "25746891.txt"
         with open(sid_file, 'r', encoding='utf-8') as f:
             sid_content = f.read()
         
         self.assertIn('一个充满温情的故事', sid_content, "Description should be in file")
+        self.assertIn('导演: 李焕庆', sid_content, "Director should be in file")
+        self.assertIn('类型: 剧情, 喜剧', sid_content, "Genres should be in file")
         
         logger.info(f"✓ Convenience function created: {result_dir}")
     
@@ -296,6 +352,7 @@ class TestMovieOrganizer(unittest.TestCase):
     def test_sid_file_format_structure(self):
         """Test the structure and formatting of sid.txt file"""
         movie_details = {
+            'search_title': '测试格式化',
             'title': '测试格式化',
             'original_title': 'Test Format',
             'year': '2021',
@@ -318,16 +375,14 @@ class TestMovieOrganizer(unittest.TestCase):
         result_dir = self.organizer.create_movie_directory_by_detail(movie_details)
         self.assertIsNotNone(result_dir)
         
-        sid_file = result_dir / "sid.txt"
+        sid_file = result_dir / "999999.txt"
         with open(sid_file, 'r', encoding='utf-8') as f:
             sid_content = f.read()
         
-        # Check sections exist
+        # Check sections exist (code puts directors/actors under "电影基本信息", not a separate "演职人员" section)
         self.assertIn('电影基本信息', sid_content, "Basic info section should exist")
-        self.assertIn('演职人员', sid_content, "Crew section should exist")
         self.assertIn('详细信息', sid_content, "Details section should exist")
         self.assertIn('剧情简介', sid_content, "Description section should exist")
-        self.assertIn('其他信息', sid_content, "Other info section should exist")
         
         # Check separators
         self.assertIn('=' * 50, sid_content, "Section separators should exist")

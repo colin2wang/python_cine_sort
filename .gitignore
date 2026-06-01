@@ -13,3 +13,4 @@ logs/
 
 # AI Generated Files
 .proxyai/
+.atomcode/

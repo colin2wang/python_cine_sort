@@ -9,7 +9,7 @@ This script integrates all movie utilities to:
 Usage:
     python process_with_folder.py
     
-Note: All configuration is read from configs/movie_org_util.yml
+Note: All configuration is read from config/movie_org_util.yml
 """
 
 from pathlib import Path
