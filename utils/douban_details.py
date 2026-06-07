@@ -1,4 +1,5 @@
 import re
+import html
 from typing import Optional, Dict, List, Any
 
 import requests
@@ -243,7 +244,7 @@ class DoubanMovieDetailsParser:
             # Basic movie information
             title = self._extract_single(r'<span property="v:itemreviewed">([^<]+)</span>')
             if title:
-                self.movie_details['title'] = title
+                self.movie_details['title'] = html.unescape(title)
             
             rating = self._extract_single(
                 r'<strong class="ll rating_num" property="v:average">([\d.]+)</strong>'

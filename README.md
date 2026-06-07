@@ -21,26 +21,40 @@ A comprehensive Python toolkit for automated movie file organization and Douban 
 
 ```
 python_cine_sort/
-├── utils/                      # Core utility modules
+├── process_with_folder.py       # Complete batch pipeline (scan → search → organize)
+├── process_with_id.py           # Single-movie pipeline by Douban SID
+├── utils/                       # Core utility modules
 │   ├── __init__.py
-│   ├── common_util.py          # Shared utility functions and helpers
-│   ├── douban_details.py       # Detailed movie information retrieval
-│   ├── douban_search.py        # Core Douban search functionality
-│   ├── logging_util.py         # Advanced logging system
-│   └── movie_filename_util.py  # Movie file scanning and parsing
-├── tests/                      # Comprehensive test suite
+│   ├── common_util.py           # Shared utility functions and helpers
+│   ├── douban_details.py        # Detailed movie information retrieval
+│   ├── douban_search.py         # Core Douban search functionality
+│   ├── logging_config.py        # Advanced logging system
+│   ├── movie_file_util.py       # Movie file scanning and parsing
+│   ├── movie_org_util.py        # Movie directory organization
+│   └── movie_sort_util.py       # Movie sorting utilities
+├── config/                      # Configuration files
+│   ├── movie_file_util.yml      # Scanner cleanup patterns
+│   └── movie_org_util.yml       # Organizer directory format
+├── tests/                       # Comprehensive test suite
 │   ├── test_douban_details.py
 │   ├── test_douban_search.py
-│   ├── test_movie_filename_util.py
+│   ├── test_movie_file_util.py
 │   ├── test_movie_full_process.py
+│   ├── test_movie_org_util.py
+│   ├── test_movie_sort_util.py
 │   └── test_parse_movie_info_from_file.py
-├── test_data/                  # Test data and fixtures
-│   └── douban_search_result.html
-├── config/                     # Configuration files
-│   └── movie_filename_util.yml
-├── douban_query_url.md         # Detailed Douban API documentation
-├── pyproject.toml              # Project configuration and dependencies
-└── uv.lock                    # Dependency lock file
+├── docs/                        # API and usage documentation
+│   ├── douban_details.md
+│   ├── douban_details_result.md
+│   ├── douban_search.md
+│   ├── douban_search_result.md
+│   └── movie_file_util.md
+├── pyproject.toml               # Project configuration and dependencies
+├── uv.lock                      # Dependency lock file
+├── CHANGE_HISTORY.md            # Change tracking
+├── Douban_API.md                # Douban API reference
+├── PROXYAI.md                   # AI proxy configuration
+└── README.md
 ```
 
 ## Quick Start
@@ -161,7 +175,25 @@ for movie_file in movies:
         print(f"Rating: {movie_info['rating']}/10 from {movie_info['review_count']} reviews")
 ```
 
-### 4. Running Tests
+### 4. SID-based Movie Processing
+
+Process a single movie directly by its Douban subject ID:
+
+```bash
+# By command-line argument
+python process_with_id.py 34884712
+
+# Or run with no arguments — reads from clipboard if available, otherwise prompts
+python process_with_id.py
+```
+
+The script:
+1. Fetches movie details from Douban by SID
+2. Creates an organized directory under the configured `movie_folder`
+3. Writes rating file and SID metadata file
+4. SID source priority: argument → clipboard (if all digits) → console input
+
+### 5. Running Tests
 
 Execute the comprehensive test suite:
 
@@ -194,7 +226,7 @@ Core functions for Douban movie querying and parsing:
   - Parses title, rating, cast, year, and description
   - Handles edge cases and malformed responses
 
-### Movie Filename Utility (`utils/movie_filename_util.py`)
+### Movie File Utility (`utils/movie_file_util.py`)
 
 Advanced file scanning and metadata extraction:
 
@@ -204,7 +236,15 @@ Advanced file scanning and metadata extraction:
 - `_process_movie_name()`: Sophisticated filename cleaning pipeline
 - `_extract_year()`: Reliable year extraction from filenames
 
-### Logging Utility (`utils/logging_util.py`)
+### Movie Organization Utility (`utils/movie_org_util.py`)
+
+Structured directory creation from Douban metadata:
+
+- `MovieOrgConfig`: Directory format and metadata file configuration
+- `MovieOrganizer`: Creates organized directories with rating & SID files
+- `organize_movie_by_detail()`: Convenience function wrapping the full flow
+
+### Logging Utility (`utils/logging_config.py`)
 
 Production-ready logging system:
 
@@ -337,8 +377,10 @@ For detailed information about Douban API endpoints and parameters, see [douban_
 ✅ **Production Ready Features**:
 - Movie file scanning and parsing
 - Douban search integration
-- HTML content parsing
+- HTML content parsing and metadata extraction
 - Anti-bot verification bypass
+- Movie directory organization with metadata files
+- SID-based single-movie processing (argument, clipboard, or interactive)
 - Comprehensive test coverage
 - Configuration management
 

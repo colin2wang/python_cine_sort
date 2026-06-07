@@ -215,7 +215,7 @@ class MovieOrganizer:
                 )
             else:
                 dir_name = self.config.directory_format.format(
-                    chinese_title=search_title_clean,
+                    chinese_title=search_title_clean or chinese_title_clean,
                     english_title=english_title_clean,
                     year=year_clean
                 )
