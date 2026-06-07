@@ -19,7 +19,14 @@ This document records all significant changes to the Music Library Organizer pro
 
 ---
 
-## 2026-05-27
+## 2026-06-07
+
+### Filename Extraction Fix
+- Fixed `_process_movie_name()` in `utils/movie_file_util.py`: Step 4 single-character filter now keeps all alphabetic single chars (including Chinese characters), not just ASCII uppercase. Single Chinese movie titles like `腿` were previously dropped, causing fallback to return the uncleaned raw filename to Douban search.
+- Improved fallback logic to extract Chinese segments from the original filename and filter out noise words (`电影`, `最新`, `下载`).
+- Fixed `configs` → `config` path in `tests/test_movie_file_util.py` and `tests/test_movie_full_process.py`.
+
+---
 
 ### Douban Result Documentation Enhancement
 - Moved Douban search result HTML to markdown documentation (`docs/douban_search_result.md`)

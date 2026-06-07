@@ -233,15 +233,22 @@ class MovieFileScanner:
         words = processed.split()
         filtered_words = [
             word for word in words
-            if len(word) > 1 or (word.isalpha() and word.isupper())
+            if len(word) > 1 or (len(word) == 1 and word.isalpha())
         ]
         result = ' '.join(filtered_words)
 
         if not result:
             self.logger.debug(f"Fallback to original: '{original}'")
-            # Fallback: try to extract anything that looks like a title
-            result = re.sub(r'[^\w\s]', ' ', original).strip()
-            result = re.sub(r'\s+', ' ', result).strip()
+            # Fallback: try to extract meaningful text from original filename
+            # First, try to preserve Chinese characters (common in Chinese movie filenames)
+            chinese_segments = re.findall(r'[\u4e00-\u9fff]+', original)
+            if chinese_segments:
+                result = ' '.join(seg for seg in chinese_segments
+                                  if seg not in ('电影', '最新', '下载'))
+            else:
+                # Last resort: remove non-word/non-space characters
+                result = re.sub(r'[^\w\s]', ' ', original).strip()
+                result = re.sub(r'\s+', ' ', result).strip()
 
         self.logger.debug(f"Final result: '{original}' -> '{result}'")
         return result

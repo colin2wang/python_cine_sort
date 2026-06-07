@@ -19,7 +19,7 @@ class TestMovieFileScanner(unittest.TestCase):
     def setUp(self):
         """Preparation before testing"""
         # Get configuration file path
-        config_path = Path(__file__).parent.parent / "configs" / "movie_file_util.yml"
+        config_path = Path(__file__).parent.parent / "config" / "movie_file_util.yml"
         config = MovieFileScannerConfig(config_path)
         self.scanner = MovieFileScanner(config)
 
