@@ -1,3 +1,4 @@
+import re
 import requests
 from typing import Optional
 
@@ -6,6 +7,31 @@ from utils.common_util import sleep_for_random_time
 
 # Get logger
 logger = setup_logger(__name__)
+
+
+def _prepare_search_query(name: str, year: str) -> str:
+    """Prepare search query for Douban.
+    
+    If the movie name contains Chinese characters, extract only the Chinese
+    portion as the search keyword (combined with year). Otherwise fall back
+    to the full name + year.
+    
+    Args:
+        name: Movie name (may contain Chinese, English, release group info, etc.)
+        year: Release year string
+    
+    Returns:
+        Formatted search query string
+    """
+    chinese_parts = re.findall(r'[\u4e00-\u9fff\uff1a\uff0c\uff01\uff1f]+', name)
+    if chinese_parts:
+        chinese_name = ' '.join(chinese_parts)
+        if year:
+            return f'{chinese_name} {year}'
+        return chinese_name
+    if year:
+        return f'{name} {year}'
+    return name
 
 
 def get_movie_search_result_html(name: str, year: str) -> Optional[str]:
@@ -20,11 +46,9 @@ def get_movie_search_result_html(name: str, year: str) -> Optional[str]:
             - On success: Complete HTML content of the search results page
             - On failure: None
     """
-    # Build search URL
-    if year:
-        url = f'https://www.douban.com/search?cat=1002&q={name} {year}'
-    else:
-        url = f'https://www.douban.com/search?cat=1002&q={name}'
+    # Build search URL with smart query preparation
+    query = _prepare_search_query(name, year)
+    url = f'https://www.douban.com/search?cat=1002&q={query}'
     
     # Set request headers to simulate browser access
     headers = {
