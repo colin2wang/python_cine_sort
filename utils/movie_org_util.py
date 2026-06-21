@@ -206,11 +206,20 @@ class MovieOrganizer:
             english_title_clean = self._clean_filename(english_title) if english_title else ''
             year_clean = year if year else ''
 
+            # Check if chinese_title already contains English
+            has_english_in_chinese = bool(re.search(r'[a-zA-Z]{2,}', chinese_title))
+
             # Generate directory name using format template
-            if english_title_clean == '':
+            if has_english_in_chinese:
                 dir_name = self.config.directory_format.format(
                     chinese_title=chinese_title_clean,
-                    english_title=english_title_clean,
+                    english_title='',
+                    year=year_clean
+                )
+            elif english_title_clean == '':
+                dir_name = self.config.directory_format.format(
+                    chinese_title=chinese_title_clean,
+                    english_title='',
                     year=year_clean
                 )
             else:

@@ -19,15 +19,16 @@ cleanup_patterns:
   - '\(.*?\)'
 
   # Website domains and source identifiers
-  - '(?:阳光电影|最新电影|电影天堂|电影港|迅雷下载|磁力链接)(?:[a-zA-Z0-9.-]*\.[a-zA-Z]{2,})?'
+  - '(?:阳光电影|最新电影|电影天堂|电影港|迅雷下载|磁力链接|YYeTs|韩剧精灵)(?:[a-zA-Z0-9.-]*\.[a-zA-Z]{2,})?'
   - 'dygod\.org'
   - 'www\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
   - '[a-zA-Z0-9.-]+\.(?:com|net|org|cn|cc)\b'
 
   # Resolution and quality (comprehensive patterns)
   - '\d+[pPkK]\b'
+  - '\d+[xX]\d+\b'
   - '\b(?:4|8)[Kk]\b'
-  - '\b(?:HD|BD|DVD|WEBRIP|BLURAY|BDRIP|HDRIP|CAM|R5|TS|TC|SCR|HQ|HQCD)\b'
+  - '\b(?:HD|BD|DVD|WEBRIP|BLURAY|BDRIP|HDRIP|CAM|R5|TS|TC|SCR|HQ|HQCD|HR-HDTV)\b'
   # Combined formats like HD1080p, BD1080p
   - '\b(?:HD|BD|DVD|WEBRIP|BLURAY|BDRIP|HDRIP|CAM|R5|TS|TC|SCR|HQ|HQCD)\d+[pPkK]\b'
   - '\b\d+[pPkK](?:HD|BD|DVD|WEBRIP|BLURAY|BDRIP|HDRIP|CAM|R5|TS|TC|SCR|HQ|HQCD)\b'
@@ -45,7 +46,7 @@ cleanup_patterns:
   - '\b(?:HDR|HDR10|Dolby\s+Vision)\b'
 
   # Release groups
-  - '\b(?:YJYS|BDYS|JYYS|DYYS|YYDS)\b'
+  - '\b(?:YJYS|BDYS|JYYS|DYYS|YYDS|人人影视制作)\b'
 
   # Leading/trailing separators
   - '^[.\-_]+'
@@ -60,7 +61,7 @@ tech_patterns:
 # 语言模式：语言和字幕标识符
 language_patterns:
   # Chinese language markers (match segments containing these keywords)
-  - '\b[\w\u4e00-\u9fff]*(?:国语|粤语|台配|日语|韩语|英语|法语|德语|俄语|西班牙语|泰语|菲律宾语|他加禄语)[\w\u4e00-\u9fff]*\b'
+  - '\b[\w\u4e00-\u9fff]*(?:国语|粤语|台配|日语|韩语|英语|法语|德语|俄语|西班牙语|泰语|菲律宾语|他加禄语|音轨)[\w\u4e00-\u9fff]*\b'
 
   # Subtitle markers (match segments containing these keywords)
   - '\b[\w\u4e00-\u9fff]*(?:中字|中英双字|双语|字幕)[\w\u4e00-\u9fff]*\b'
