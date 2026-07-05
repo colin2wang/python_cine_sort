@@ -18,6 +18,16 @@ from .douban_details import (
     parse_movie_details_result
 )
 
+# Douban Poster
+from .douban_poster import (
+    get_posters_page_html,
+    parse_posters_result,
+    download_poster,
+    get_movie_poster,
+    get_all_movie_posters,
+    download_official_posters
+)
+
 # Movie file
 from .movie_file_util import (
     MovieFileInfo,
@@ -34,6 +44,9 @@ from .movie_org_util import (
     organize_movie_by_detail
 )
 
+# Database manager
+from .db_manager import MovieDB
+
 __all__ = [
     # Logging utilities
     'setup_logger',
@@ -46,6 +59,14 @@ __all__ = [
     'get_movie_details_html',
     'parse_movie_details_result',
     
+    # Douban Poster
+    'get_posters_page_html',
+    'parse_posters_result',
+    'download_poster',
+    'get_movie_poster',
+    'get_all_movie_posters',
+    'download_official_posters',
+    
     # Movie file scanning utilities
     'MovieFileInfo',
     'MovieFileScannerConfig',
@@ -57,4 +78,7 @@ __all__ = [
     'MovieOrganizer',
     'organize_movie',
     'organize_movie_by_detail',
+    
+    # Database manager
+    'MovieDB',
 ]

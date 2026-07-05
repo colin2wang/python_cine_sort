@@ -14,3 +14,7 @@ logs/
 # AI Generated Files
 .proxyai/
 .atomcode/
+.mimocode/
+
+# Database
+db/

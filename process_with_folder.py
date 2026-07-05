@@ -18,7 +18,9 @@ from typing import List, Dict, Optional
 from utils.movie_file_util import MovieFileScanner, MovieFileScannerConfig
 from utils.douban_search import get_movie_search_result_html, parse_movie_search_result
 from utils.douban_details import get_movie_details_html, parse_movie_details_result
+from utils.douban_poster import get_official_posters, download_official_posters
 from utils.movie_org_util import organize_movie_by_detail, MovieOrgConfig
+from utils.db_manager import MovieDB
 from utils.logging_config import setup_logger
 
 logger = setup_logger(__name__)
@@ -88,7 +90,7 @@ class MovieProcessor:
         self.logger.info("=" * 60)
 
         # Step 1: Scan movie files
-        self.logger.info("\n[Step 1/3] Scanning movie files...")
+        self.logger.info("\n[Step 1/4] Scanning movie files...")
         movie_files = self.scanner.scan_directory(input_dir, recursive)
         self.stats['total_files'] = len(movie_files)
 
@@ -143,7 +145,7 @@ class MovieProcessor:
 
         try:
             # Step 2: Search Douban for movie
-            self.logger.info(f"\n[Step 2/3] Searching Douban for: {movie_file.movie_name} ({movie_file.year or 'N/A'})")
+            self.logger.info(f"\n[Step 2/4] Searching Douban for: {movie_file.movie_name} ({movie_file.year or 'N/A'})")
             search_html = get_movie_search_result_html(movie_file.movie_name, movie_file.year or '')
 
             if not search_html:
@@ -165,7 +167,7 @@ class MovieProcessor:
             self.logger.info(f"  Rating: {search_info.get('rating', 'N/A')}")
 
             # Step 3: Get detailed movie information
-            self.logger.info(f"\n[Step 3/3] Getting detailed information from Douban (SID: {sid})")
+            self.logger.info(f"\n[Step 3/4] Getting detailed information from Douban (SID: {sid})")
             details_html = get_movie_details_html(sid)
 
             if not details_html:
@@ -196,7 +198,7 @@ class MovieProcessor:
                 movie_details['sid'] = sid
 
             # Step 4: Create organized directory structure
-            self.logger.info(f"\n[Step 4/4] Creating organized directory structure")
+            self.logger.info(f"\n[Step 4/5] Creating organized directory structure")
             movie_dir = organize_movie_by_detail(
                 movie_details,
                 config_file=str(self.config_dir / "movie_org_util.yml")
@@ -204,6 +206,36 @@ class MovieProcessor:
 
             if movie_dir:
                 self.logger.info(f"✓ Successfully created directory: {movie_dir}")
+
+                # Step 5: Download official posters
+                self.logger.info(f"\n[Step 5/5] Downloading official posters...")
+                downloaded_posters = download_official_posters(
+                    sid=sid,
+                    save_dir=str(movie_dir),
+                    title_keyword="正式海报"
+                )
+
+                if downloaded_posters:
+                    self.logger.info(f"✓ Downloaded {len(downloaded_posters)} posters")
+                    for poster_path in downloaded_posters:
+                        self.logger.info(f"  - {Path(poster_path).name}")
+                else:
+                    self.logger.warning("⚠ No posters downloaded")
+
+                # Save to database
+                self.logger.info("Saving to database...")
+                try:
+                    db = MovieDB()
+                    movie_id = db.save_movie(movie_details, directory_path=str(movie_dir))
+                    self.logger.info(f"✓ Saved movie to database (ID: {movie_id})")
+
+                    poster_metadata = get_official_posters(sid)
+                    if poster_metadata:
+                        db.save_posters(movie_id, poster_metadata)
+                        self.logger.info(f"✓ Saved {len(poster_metadata)} poster records to database")
+                except Exception as e:
+                    self.logger.error(f"⚠ Failed to save to database: {e}")
+
                 result['success'] = True
                 result['directory'] = str(movie_dir)
             else:

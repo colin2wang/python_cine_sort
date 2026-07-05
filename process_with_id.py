@@ -17,7 +17,9 @@ from pathlib import Path
 from typing import Optional
 
 from utils.douban_details import get_movie_details_html, parse_movie_details_result
+from utils.douban_poster import get_official_posters, download_official_posters
 from utils.movie_org_util import organize_movie_by_detail, MovieOrgConfig
+from utils.db_manager import MovieDB
 from utils.logging_config import setup_logger
 
 logger = setup_logger(__name__)
@@ -78,12 +80,44 @@ def process_by_sid(sid: str) -> int:
         config_file=str(org_config_file)
     )
 
-    if movie_dir:
-        print(f"✓ Successfully created directory: {movie_dir}")
-        return 0
-    else:
+    if not movie_dir:
         logger.error("✗ Failed to create directory")
         return 1
+
+    print(f"✓ Successfully created directory: {movie_dir}")
+
+    # Step 3: Download official posters
+    logger.info("Downloading official posters...")
+    poster_dir = Path(movie_dir)
+    downloaded_posters = download_official_posters(
+        sid=sid,
+        save_dir=str(poster_dir),
+        title_keyword="正式海报"
+    )
+
+    if downloaded_posters:
+        logger.info(f"✓ Downloaded {len(downloaded_posters)} posters")
+        for poster_path in downloaded_posters:
+            logger.info(f"  - {Path(poster_path).name}")
+    else:
+        logger.warning("⚠ No posters downloaded")
+
+    # Step 4: Save to database
+    logger.info("Saving to database...")
+    try:
+        db = MovieDB()
+        movie_id = db.save_movie(movie_details, directory_path=str(movie_dir))
+        logger.info(f"✓ Saved movie to database (ID: {movie_id})")
+
+        # Get poster metadata and save
+        poster_metadata = get_official_posters(sid)
+        if poster_metadata:
+            db.save_posters(movie_id, poster_metadata)
+            logger.info(f"✓ Saved {len(poster_metadata)} poster records to database")
+    except Exception as e:
+        logger.error(f"⚠ Failed to save to database: {e}")
+
+    return 0
 
 
 def print_usage():
