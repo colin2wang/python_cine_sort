@@ -227,6 +227,34 @@ def _is_valid_image(file_path: str) -> bool:
         return False
 
 
+def _try_alternative_cdn(url: str) -> list:
+    """Generate alternative CDN URLs when the original domain is blocked.
+
+    Douban uses img{N}.doubanio.com for image CDN. Some domains may be
+    blocked or rate-limited while others work fine.
+
+    Args:
+        url: Original image URL (e.g. "https://img9.doubanio.com/view/photo/...")
+
+    Returns:
+        List of alternative URLs to try, excluding the original
+    """
+    import re as _re
+    # Match img{N}.doubanio.com pattern
+    match = _re.match(r'(https?://)img(\d+)(\.doubanio\.com/.*)', url)
+    if not match:
+        return []
+
+    protocol, _current_num, path = match.groups()
+    # Try other known CDN numbers, preferring img3 which is commonly stable
+    alternatives = []
+    for num in ['3', '1', '2', '4', '5', '6', '7', '8']:
+        alt_url = f'{protocol}img{num}{path}'
+        if alt_url != url:
+            alternatives.append(alt_url)
+    return alternatives
+
+
 def download_poster(url: str, save_path: str, max_retries: int = 3) -> bool:
     """
     Download a poster image to local file with validation and retry.
@@ -234,6 +262,7 @@ def download_poster(url: str, save_path: str, max_retries: int = 3) -> bool:
     Validates the downloaded file is a real image (not JS/HTML).
     Retries on transient errors. Returns False immediately on content-type
     blocks (text/html) since retrying the same URL won't help.
+    When blocked, automatically tries alternative Douban CDN domains.
 
     Args:
         url (str): Image URL to download
@@ -249,43 +278,46 @@ def download_poster(url: str, save_path: str, max_retries: int = 3) -> bool:
         'Referer': 'https://movie.douban.com/'
     }
 
-    for attempt in range(1, max_retries + 1):
-        try:
-            logger.info(f"Download attempt {attempt}/{max_retries}: {url}")
-            response = requests.get(url, headers=headers, timeout=30, stream=True)
-            response.raise_for_status()
+    urls_to_try = [url] + _try_alternative_cdn(url)
 
-            # Check content type — reject non-image responses early
-            content_type = response.headers.get('Content-Type', '')
-            if 'text/html' in content_type or 'javascript' in content_type:
-                logger.warning(f"Got non-image content type '{content_type}' from {url}")
-                response.close()
-                # Retrying same URL is pointless for content-type blocks
-                return False
+    for try_url in urls_to_try:
+        for attempt in range(1, max_retries + 1):
+            try:
+                logger.info(f"Download attempt {attempt}/{max_retries}: {try_url}")
+                response = requests.get(try_url, headers=headers, timeout=30, stream=True)
+                response.raise_for_status()
 
-            # Ensure directory exists
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                # Check content type — reject non-image responses early
+                content_type = response.headers.get('Content-Type', '')
+                if 'text/html' in content_type or 'javascript' in content_type:
+                    logger.warning(f"Got non-image content type '{content_type}' from {try_url}")
+                    response.close()
+                    # Try next CDN domain instead of giving up
+                    break
 
-            with open(save_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
+                # Ensure directory exists
+                os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
-            # Validate the downloaded file is a real image
-            if not _is_valid_image(save_path):
-                logger.warning(f"Downloaded file is not a valid image: {save_path}")
-                os.remove(save_path)
-                continue
+                with open(save_path, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        f.write(chunk)
 
-            logger.info(f"Downloaded poster to: {save_path}")
-            return True
+                # Validate the downloaded file is a real image
+                if not _is_valid_image(save_path):
+                    logger.warning(f"Downloaded file is not a valid image: {save_path}")
+                    os.remove(save_path)
+                    continue
 
-        except Exception as e:
-            logger.warning(f"Download attempt {attempt}/{max_retries} failed for {url}: {e}")
-            # Clean up partial file
-            if os.path.exists(save_path):
-                os.remove(save_path)
+                logger.info(f"Downloaded poster to: {save_path}")
+                return True
 
-    logger.error(f"All {max_retries} download attempts failed for {url}, giving up")
+            except Exception as e:
+                logger.warning(f"Download attempt {attempt}/{max_retries} failed for {try_url}: {e}")
+                # Clean up partial file
+                if os.path.exists(save_path):
+                    os.remove(save_path)
+
+    logger.error(f"All download attempts failed for {url}, giving up")
     return False
 
 

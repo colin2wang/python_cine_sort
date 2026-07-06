@@ -47,6 +47,9 @@ from .movie_org_util import (
 # Database manager
 from .db_manager import MovieDB
 
+# IMDB rating
+from .imdb_rating import get_imdb_rating
+
 __all__ = [
     # Logging utilities
     'setup_logger',
@@ -81,4 +84,7 @@ __all__ = [
     
     # Database manager
     'MovieDB',
+
+    # IMDB rating
+    'get_imdb_rating',
 ]

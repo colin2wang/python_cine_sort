@@ -21,6 +21,7 @@ from utils.douban_details import get_movie_details_html, parse_movie_details_res
 from utils.douban_poster import get_official_posters, download_official_posters
 from utils.movie_org_util import organize_movie_by_detail, MovieOrgConfig
 from utils.db_manager import MovieDB
+from utils.imdb_rating import get_imdb_rating
 from utils.logging_config import setup_logger
 
 logger = setup_logger(__name__)
@@ -209,6 +210,15 @@ class MovieProcessor:
 
             if movie_dir:
                 self.logger.info(f"✓ Successfully created directory: {movie_dir}")
+
+                # Create IMDB rating file (alongside other text files)
+                imdb_id = movie_details.get('imdb_id', '')
+                if imdb_id:
+                    imdb_rating = get_imdb_rating(imdb_id)
+                    if imdb_rating is not None:
+                        imdb_file = Path(movie_dir) / f"IMDB {imdb_rating}.txt"
+                        imdb_file.write_text("", encoding='utf-8')
+                        self.logger.info(f"✓ Created IMDB rating file: {imdb_file.name}")
 
                 # Step 5: Download official posters
                 self.logger.info(f"\n[Step 5/5] Downloading official posters...")

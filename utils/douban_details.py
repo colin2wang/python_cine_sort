@@ -281,7 +281,7 @@ class DoubanMovieDetailsParser:
                 self.movie_details['runtime'] = int(runtime)
             
             # Extract IMDb ID
-            imdb_id = self._extract_single(r'IMDb:</span>([^<\s]+)')
+            imdb_id = self._extract_single(r'IMDb:</span>\s*([^<\s]+)')
             if imdb_id:
                 self.movie_details['imdb_id'] = imdb_id
             

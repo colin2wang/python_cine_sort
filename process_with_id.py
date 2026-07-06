@@ -17,19 +17,32 @@ from pathlib import Path
 from typing import Optional
 
 from utils.douban_details import get_movie_details_html, parse_movie_details_result
-from utils.douban_poster import get_official_posters, download_official_posters, download_poster, _parse_poster_filename
+from utils.douban_poster import get_official_posters, download_official_posters
 from utils.movie_org_util import organize_movie_by_detail, MovieOrgConfig
 from utils.db_manager import MovieDB
+from utils.imdb_rating import get_imdb_rating
 from utils.logging_config import setup_logger
 
 logger = setup_logger(__name__)
 
 
+def _create_imdb_rating_file(movie_details: dict, movie_dir: str) -> None:
+    """Fetch IMDB rating and create IMDB X.X.txt file if rating exists."""
+    imdb_id = movie_details.get('imdb_id', '')
+    if not imdb_id:
+        return
+
+    rating = get_imdb_rating(imdb_id)
+    if rating is not None:
+        rating_file = Path(movie_dir) / f"IMDB {rating}.txt"
+        rating_file.write_text("", encoding='utf-8')
+        logger.info(f"✓ Created IMDB rating file: {rating_file.name}")
+
+
 def process_by_sid(sid: str) -> int:
     """Fetch Douban details for a SID and create organized directory.
 
-    Checks the database first: if movie info and poster data already exist
-    for this SID, uses the cached data instead of fetching from Douban.
+    Always fetches fresh data from Douban. Database is write-only.
 
     Args:
         sid: Douban movie subject ID (e.g. "34884712")
@@ -45,131 +58,12 @@ def process_by_sid(sid: str) -> int:
         print(f"Error: Config file not found: {org_config_file}")
         return 1
 
-    # Load organizer config to get movie_folder for display
+    # Load organizer config
     org_config = MovieOrgConfig(org_config_file)
     movie_folder = Path(org_config.movie_folder).resolve()
     print(f"Movie folder (from config): {movie_folder}")
 
-    db = MovieDB()
-
-    # Step 1: Check database first for existing data
-    logger.info(f"Checking database for SID: {sid}")
-    db_movie = db.get_movie_by_sid(sid)
-
-    if db_movie and db_movie.get('title') and db_movie.get('posters'):
-        logger.info(f"✓ Found cached data in database: {db_movie.get('title')}")
-        logger.info(f"  Chinese Title: {db_movie.get('title', 'N/A')}")
-        logger.info(f"  Original Title: {db_movie.get('original_title', 'N/A')}")
-        logger.info(f"  Year: {db_movie.get('year', 'N/A')}")
-        logger.info(f"  Rating: {db_movie.get('rating', 'N/A')}")
-        logger.info(f"  Directors: {', '.join(db_movie.get('directors', [])[:3])}")
-
-        # Use cached movie data for directory creation
-        movie_details = db_movie
-        movie_details['sid'] = sid
-
-        # Check if directory already exists
-        existing_dir = db_movie.get('directory_path')
-        if existing_dir and Path(existing_dir).exists():
-            logger.info(f"✓ Directory already exists: {existing_dir}")
-            movie_dir = existing_dir
-        else:
-            # Create directory using cached data
-            logger.info("Creating organized directory structure...")
-            movie_dir = organize_movie_by_detail(
-                movie_details,
-                config_file=str(org_config_file)
-            )
-            if not movie_dir:
-                logger.error("✗ Failed to create directory")
-                return 1
-            # Update database with new directory path
-            db.save_movie(movie_details, directory_path=str(movie_dir))
-
-        print(f"✓ Movie directory: {movie_dir}")
-
-        # Check poster download status
-        posters = db_movie.get('posters', [])
-        downloaded_count = sum(1 for p in posters if p.get('is_downloaded'))
-        not_downloaded = [p for p in posters if not p.get('is_downloaded')]
-
-        if downloaded_count > 0:
-            logger.info(f"✓ {downloaded_count} posters already downloaded")
-
-        poster_dir = Path(movie_dir)
-
-        # Download missing posters (with re-fetch on failure)
-        if not_downloaded:
-            logger.info(f"Downloading {len(not_downloaded)} missing posters...")
-            failed_urls = set()
-
-            for poster in not_downloaded:
-                original_url = poster.get('original_url', '')
-                if not original_url or original_url in failed_urls:
-                    continue
-
-                # Build filename using shared helper
-                filename = _parse_poster_filename({
-                    'original': original_url,
-                    'title': poster.get('title', '')
-                })
-                save_path = str(poster_dir / filename)
-
-                if download_poster(original_url, save_path):
-                    db.update_poster_download(
-                        movie_id=db_movie['id'],
-                        original_url=original_url,
-                        local_path=save_path
-                    )
-                    logger.info(f"  - Downloaded: {filename}")
-                else:
-                    failed_urls.add(original_url)
-                    logger.warning(f"  - Failed: {original_url}")
-
-            # Re-fetch poster metadata from Douban for any that failed
-            if failed_urls:
-                logger.info("Re-fetching poster metadata from Douban for failed URLs...")
-                fresh_posters = get_official_posters(sid)
-                if fresh_posters:
-                    # Delete stale poster records with failed URLs
-                    db.delete_posters_by_urls(db_movie['id'], list(failed_urls))
-                    # Save fresh metadata (even if downloads may fail)
-                    db.save_posters(db_movie['id'], fresh_posters)
-                    logger.info(f"✓ Saved {len(fresh_posters)} fresh poster records to database")
-
-                    for poster in fresh_posters:
-                        fresh_url = poster.get('original', poster.get('original_url', ''))
-                        if not fresh_url or fresh_url not in failed_urls:
-                            continue
-
-                        fresh_filename = _parse_poster_filename(poster)
-                        fresh_save_path = str(poster_dir / fresh_filename)
-                        if download_poster(fresh_url, fresh_save_path):
-                            db.update_poster_download(
-                                movie_id=db_movie['id'],
-                                original_url=fresh_url,
-                                local_path=fresh_save_path
-                            )
-                            logger.info(f"  - Re-downloaded: {fresh_filename}")
-
-        # Cleanup: remove downloaded files not tracked in database
-        all_posters = db.get_movie_by_sid(sid)
-        if all_posters:
-            db_files = set()
-            for p in all_posters.get('posters', []):
-                lp = p.get('local_path', '')
-                if lp and Path(lp).exists():
-                    db_files.add(Path(lp).resolve())
-            if poster_dir.exists():
-                for f in poster_dir.iterdir():
-                    if f.is_file() and f.suffix.lower() in ('.jpg', '.jpeg', '.png', '.webp', '.gif'):
-                        if f.resolve() not in db_files:
-                            logger.info(f"  - Removing orphaned file: {f.name}")
-                            f.unlink()
-
-        return 0
-
-    # Step 2: Cache miss — fetch from Douban
+    # Step 1: Fetch Douban details
     logger.info(f"Fetching Douban details for SID: {sid}")
     details_html = get_movie_details_html(sid)
 
@@ -184,6 +78,9 @@ def process_by_sid(sid: str) -> int:
         logger.error("✗ Failed to parse movie details")
         return 1
 
+    if 'sid' not in movie_details:
+        movie_details['sid'] = sid
+
     logger.info("✓ Successfully parsed movie details:")
     logger.info(f"  Chinese Title: {movie_details.get('title', 'N/A')}")
     logger.info(f"  Original Title: {movie_details.get('original_title', 'N/A')}")
@@ -191,11 +88,7 @@ def process_by_sid(sid: str) -> int:
     logger.info(f"  Rating: {movie_details.get('rating', 'N/A')}")
     logger.info(f"  Directors: {', '.join(movie_details.get('directors', [])[:3])}")
 
-    # Ensure SID is set in details
-    if 'sid' not in movie_details:
-        movie_details['sid'] = sid
-
-    # Step 3: Create organized directory structure
+    # Step 2: Create organized directory structure
     logger.info("Creating organized directory structure...")
     movie_dir = organize_movie_by_detail(
         movie_details,
@@ -208,7 +101,10 @@ def process_by_sid(sid: str) -> int:
 
     print(f"✓ Successfully created directory: {movie_dir}")
 
-    # Step 4: Download official posters
+    # Create IMDB rating file (alongside other text files)
+    _create_imdb_rating_file(movie_details, movie_dir)
+
+    # Step 3: Download official posters
     logger.info("Downloading official posters...")
     poster_dir = Path(movie_dir)
     downloaded_posters = download_official_posters(
@@ -224,13 +120,13 @@ def process_by_sid(sid: str) -> int:
     else:
         logger.warning("⚠ No posters downloaded")
 
-    # Step 5: Save to database
+    # Step 4: Save to database
     logger.info("Saving to database...")
     try:
+        db = MovieDB()
         movie_id = db.save_movie(movie_details, directory_path=str(movie_dir))
         logger.info(f"✓ Saved movie to database (ID: {movie_id})")
 
-        # Get poster metadata and save
         poster_metadata = get_official_posters(sid)
         if poster_metadata:
             db.save_posters(movie_id, poster_metadata)
