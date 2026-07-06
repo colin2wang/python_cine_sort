@@ -238,7 +238,7 @@ class MovieDB:
 
                 try:
                     conn.execute("""
-                        INSERT OR IGNORE INTO posters
+                        INSERT OR REPLACE INTO posters
                             (movie_id, poster_id, title, keyword, region,
                              thumbnail_url, original_url, file_size, is_downloaded,
                              local_path, created_at)
@@ -277,6 +277,21 @@ class MovieDB:
             conn.execute(
                 "UPDATE posters SET is_downloaded=1, local_path=? WHERE movie_id=? AND original_url=?",
                 (local_path, movie_id, original_url)
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def delete_posters_by_urls(self, movie_id: int, urls: List[str]):
+        """Delete poster records by their original URLs."""
+        if not urls:
+            return
+        conn = self._get_conn()
+        try:
+            placeholders = ','.join('?' * len(urls))
+            conn.execute(
+                f"DELETE FROM posters WHERE movie_id=? AND original_url IN ({placeholders})",
+                [movie_id] + urls
             )
             conn.commit()
         finally:

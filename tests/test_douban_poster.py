@@ -84,7 +84,9 @@ class TestDoubanPosterParser:
         html_content = '''
         <li data-id="123456">
             <div class="cover">
-                <img src="https://img9.doubanio.com/view/photo/m/public/p123456.webp" />
+                <a href="https://movie.douban.com/photos/photo/123456/">
+                    <img src="https://img9.doubanio.com/view/photo/m/public/p123456.webp" />
+                </a>
             </div>
             <div class="name">
                 正式海报 中国香港
@@ -103,7 +105,9 @@ class TestDoubanPosterParser:
         html_content = '''
         <li data-id="789">
             <div class="cover">
-                <img src="https://img9.doubanio.com/view/photo/m/public/p789.webp" />
+                <a href="https://movie.douban.com/photos/photo/789/">
+                    <img src="https://img9.doubanio.com/view/photo/m/public/p789.webp" />
+                </a>
             </div>
             <div class="name">
                 正式海报 日本

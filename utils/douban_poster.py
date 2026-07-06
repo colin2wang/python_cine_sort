@@ -33,17 +33,22 @@ class DoubanPosterParser:
 
         try:
             # Pattern 1: Match <li> structure with <div class="cover"> and <div class="name">
-            # <li data-id="...">...<div class="cover">...<img src="..." />...</div>...<div class="name">TITLE...</div>...</li>
-            pattern = r'<li[^>]*>.*?<div class="cover">.*?<img[^>]+(?:src|data-img)="([^"]+)".*?</div>.*?<div class="name">\s*(.*?)\s*<a'
+            # <li data-id="...">...<div class="cover"><a href="PHOTO_URL">...<img src="..." />...</a></div>...<div class="name">TITLE...</div>...</li>
+            pattern = (
+                r'<li[^>]*>.*?<div class="cover">.*?<a[^>]+href="([^"]+)".*?'
+                r'<img[^>]+(?:src|data-img)="([^"]+)".*?</div>.*?'
+                r'<div class="name">\s*(.*?)\s*<a'
+            )
             matches = re.findall(pattern, self.html, re.DOTALL)
 
-            for img_url, title_raw in matches:
+            for photo_url, img_url, title_raw in matches:
                 # Clean title: remove HTML tags and extra whitespace
                 title = re.sub(r'<[^>]+>', '', title_raw).strip()
                 # Remove trailing comment count like "9回应"
                 title = re.sub(r'\d+回应$', '', title).strip()
 
                 poster_info = {
+                    'photo_url': photo_url,
                     'thumbnail': img_url,
                     'original': self._get_original_url(img_url),
                     'title': title
@@ -52,14 +57,19 @@ class DoubanPosterParser:
 
             # Pattern 2: Fallback - match <li> with <div class="name"> without <a> tag requirement
             if not self.posters:
-                pattern = r'<li[^>]*>.*?<div class="cover">.*?<img[^>]+(?:src|data-img)="([^"]+)".*?</div>.*?<div class="name">\s*(.*?)\s*</div>'
+                pattern = (
+                    r'<li[^>]*>.*?<div class="cover">.*?<a[^>]+href="([^"]+)".*?'
+                    r'<img[^>]+(?:src|data-img)="([^"]+)".*?</div>.*?'
+                    r'<div class="name">\s*(.*?)\s*</div>'
+                )
                 matches = re.findall(pattern, self.html, re.DOTALL)
 
-                for img_url, title_raw in matches:
+                for photo_url, img_url, title_raw in matches:
                     title = re.sub(r'<[^>]+>', '', title_raw).strip()
                     title = re.sub(r'\d+回应$', '', title).strip()
 
                     poster_info = {
+                        'photo_url': photo_url,
                         'thumbnail': img_url,
                         'original': self._get_original_url(img_url),
                         'title': title
@@ -73,6 +83,7 @@ class DoubanPosterParser:
                 for img_url, alt in matches:
                     if 'doubanio.com' in img_url:
                         poster_info = {
+                            'photo_url': '',
                             'thumbnail': img_url,
                             'original': self._get_original_url(img_url),
                             'title': alt.strip() if alt else ''
@@ -178,40 +189,104 @@ def parse_posters_result(html_content: str) -> List[Dict[str, str]]:
     return parser.parse()
 
 
-def download_poster(url: str, save_path: str) -> bool:
+def _is_valid_image(file_path: str) -> bool:
     """
-    Download a poster image to local file.
+    Check if a file is a valid image by inspecting magic bytes.
+
+    Args:
+        file_path: Path to the file to check
+
+    Returns:
+        True if the file starts with known image magic bytes, False otherwise
+    """
+    try:
+        with open(file_path, 'rb') as f:
+            header = f.read(16)
+        if len(header) < 4:
+            return False
+        # JPEG: FF D8 FF
+        if header[:3] == b'\xff\xd8\xff':
+            return True
+        # PNG: 89 50 4E 47
+        if header[:4] == b'\x89PNG':
+            return True
+        # GIF: GIF87a or GIF89a
+        if header[:6] in (b'GIF87a', b'GIF89a'):
+            return True
+        # WebP: RIFF....WEBP
+        if header[:4] == b'RIFF' and header[8:12] == b'WEBP':
+            return True
+        # BMP: BM
+        if header[:2] == b'BM':
+            return True
+        # AVIF/HEIF: ....ftyp
+        if header[4:8] == b'ftyp':
+            return True
+        return False
+    except Exception:
+        return False
+
+
+def download_poster(url: str, save_path: str, max_retries: int = 3) -> bool:
+    """
+    Download a poster image to local file with validation and retry.
+
+    Validates the downloaded file is a real image (not JS/HTML).
+    Retries on transient errors. Returns False immediately on content-type
+    blocks (text/html) since retrying the same URL won't help.
 
     Args:
         url (str): Image URL to download
         save_path (str): Local file path to save the image
+        max_retries (int): Maximum number of download attempts
 
     Returns:
-        bool: True if download successful, False otherwise
+        bool: True if a valid image was downloaded, False otherwise
     """
-    try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-                          '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Referer': 'https://movie.douban.com/'
-        }
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                       '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://movie.douban.com/'
+    }
 
-        response = requests.get(url, headers=headers, timeout=30, stream=True)
-        response.raise_for_status()
+    for attempt in range(1, max_retries + 1):
+        try:
+            logger.info(f"Download attempt {attempt}/{max_retries}: {url}")
+            response = requests.get(url, headers=headers, timeout=30, stream=True)
+            response.raise_for_status()
 
-        # Ensure directory exists
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            # Check content type — reject non-image responses early
+            content_type = response.headers.get('Content-Type', '')
+            if 'text/html' in content_type or 'javascript' in content_type:
+                logger.warning(f"Got non-image content type '{content_type}' from {url}")
+                response.close()
+                # Retrying same URL is pointless for content-type blocks
+                return False
 
-        with open(save_path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
-        logger.info(f"Downloaded poster to: {save_path}")
-        return True
+            with open(save_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
 
-    except Exception as e:
-        logger.error(f"Failed to download poster {url}: {e}")
-        return False
+            # Validate the downloaded file is a real image
+            if not _is_valid_image(save_path):
+                logger.warning(f"Downloaded file is not a valid image: {save_path}")
+                os.remove(save_path)
+                continue
+
+            logger.info(f"Downloaded poster to: {save_path}")
+            return True
+
+        except Exception as e:
+            logger.warning(f"Download attempt {attempt}/{max_retries} failed for {url}: {e}")
+            # Clean up partial file
+            if os.path.exists(save_path):
+                os.remove(save_path)
+
+    logger.error(f"All {max_retries} download attempts failed for {url}, giving up")
+    return False
 
 
 def get_movie_poster(sid: str, save_dir: str = None) -> Optional[str]:
@@ -444,6 +519,17 @@ def get_official_posters(
     if not filtered:
         filtered = posters
 
+    # Log all filtered poster photo page URLs
+    logger.info(f"Found {len(filtered)} posters matching keyword '{title_keyword}':")
+    for poster in filtered:
+        photo_url = poster.get('photo_url', '')
+        if not photo_url:
+            url_filename = poster['original'].split('/')[-1]
+            photo_id_match = re.search(r'p(\d+)', url_filename)
+            if photo_id_match:
+                photo_url = f"https://movie.douban.com/photos/photo/{photo_id_match.group(1)}/"
+        logger.info(f"  {photo_url}")
+
     # Get sizes and sort by size (largest first)
     for poster in filtered:
         poster['size'] = _get_image_size(poster['original'])
@@ -468,20 +554,74 @@ def get_official_posters(
     return selected
 
 
+def _build_poster_save_path(poster: Dict[str, Any], save_dir: str) -> str:
+    """
+    Build the local save path for a poster.
+
+    Args:
+        poster: Poster info dict with 'original' and 'title' keys
+        save_dir: Directory to save the poster
+
+    Returns:
+        Full file path
+    """
+    original_url = poster['original']
+    title = poster.get('title', '')
+
+    # Extract base name and extension from URL (e.g., "p1082990842.webp" -> "p1082990842", "webp")
+    url_filename = original_url.split('/')[-1]
+    if '.' in url_filename:
+        base_name, ext = url_filename.rsplit('.', 1)
+        ext = f".{ext}"
+    else:
+        base_name = url_filename
+        ext = ".jpg"
+
+    # Parse title to get keyword and region
+    # Title format: "正式海报 中国大陆" or "正式海报 美国" or "正式海报"
+    title_parts = title.strip().split()
+    keyword = title_parts[0] if title_parts else "正式海报"
+    region = title_parts[1] if len(title_parts) > 1 else ""
+
+    # Build filename
+    if region:
+        filename = f"{base_name}_{keyword}_{region}{ext}"
+    else:
+        filename = f"{base_name}_{keyword}{ext}"
+
+    return os.path.join(save_dir, filename)
+
+
+def _get_file_size(file_path: str) -> int:
+    """
+    Get the size of a local file in bytes.
+
+    Args:
+        file_path: Path to the file
+
+    Returns:
+        File size in bytes, or 0 if the file doesn't exist or can't be read
+    """
+    try:
+        return os.path.getsize(file_path)
+    except Exception:
+        return 0
+
+
 def download_official_posters(
     sid: str,
     save_dir: str,
     title_keyword: str = "正式海报"
 ) -> List[str]:
     """
-    Download official posters: top 3 largest + 1 Chinese poster.
+    Download official posters with smart selection.
 
     Selection logic:
-    1. Filter posters containing title_keyword (default: "正式海报")
-    2. Sort all by file size (largest first)
-    3. Select top 3 by size
-    4. Add 1 Chinese poster if available and not already in top 3
-    5. Handle edge cases: no Chinese, less than 3 posters, etc.
+    1. Download posters one by one, check actual file size after download
+    2. Early stop if 1 Chinese region poster + 3 non-Chinese posters each >= 1MB
+    3. Otherwise download all, keep 1 Chinese (largest) + 3 largest non-Chinese
+    4. Delete files smaller than 10KB
+    5. Delete unselected files
 
     Args:
         sid: Movie SID identifier
@@ -508,69 +648,127 @@ def download_official_posters(
         logger.warning(f"No posters with '{title_keyword}' found, using all posters")
         filtered = posters
 
-    # Get sizes and sort by size (largest first)
-    logger.info("Checking poster sizes...")
+    # Log all filtered poster photo page URLs
+    logger.info(f"Found {len(filtered)} posters matching keyword '{title_keyword}':")
     for poster in filtered:
-        poster['size'] = _get_image_size(poster['original'])
-        sleep_for_random_time()
-
-    filtered.sort(key=lambda x: x.get('size', 0), reverse=True)
-
-    # Select top 3 by size
-    top_by_size = filtered[:3]
-
-    # Find Chinese poster (not already in top 3)
-    chinese_poster = None
-    for poster in filtered:
-        if poster not in top_by_size and _is_chinese_text(poster.get('title', '')):
-            chinese_poster = poster
-            break
-
-    # Build final selection: top 3 + 1 Chinese (if available)
-    selected = list(top_by_size)
-    if chinese_poster:
-        selected.append(chinese_poster)
-
-    if not selected:
-        logger.warning(f"No suitable posters found for SID: {sid}")
-        return []
+        photo_url = poster.get('photo_url', '')
+        if not photo_url:
+            # Construct photo page URL from the original image URL if not captured
+            url_filename = poster['original'].split('/')[-1]
+            # Extract numeric photo ID from filename like "p2460519128.webp"
+            photo_id_match = re.search(r'p(\d+)', url_filename)
+            if photo_id_match:
+                photo_url = f"https://movie.douban.com/photos/photo/{photo_id_match.group(1)}/"
+        logger.info(f"  {photo_url}")
 
     os.makedirs(save_dir, exist_ok=True)
 
-    downloaded = []
-    for i, poster in enumerate(selected):
+    MIN_QUALIFIED_SIZE = 1 * 1024 * 1024  # 1MB
+    MIN_KEEP_SIZE = 10 * 1024  # 10KB
+
+    # Track downloaded files and qualified candidates
+    # Each entry: (save_path, poster_info, file_size_bytes)
+    downloaded_all: Dict[str, tuple] = {}  # poster original URL -> (save_path, poster, file_size)
+    chinese_qualified: List[tuple] = []
+    non_chinese_qualified: List[tuple] = []
+
+    # Phase 1: Download one by one, early stop when 1 Chinese + 3 non-Chinese >= 1MB
+    logger.info("Downloading posters and checking sizes...")
+    for poster in filtered:
+        poster_key = poster['original']
+        if poster_key in downloaded_all:
+            continue
+
         sleep_for_random_time()
-        original_url = poster['original']
-        title = poster.get('title', '')
-        size = poster.get('size', 0)
+        save_path = _build_poster_save_path(poster, save_dir)
 
-        # Generate filename: p{image_id}_{keyword}_{region}.{ext} or p{image_id}_{keyword}.{ext}
-        # Extract base name and extension from URL (e.g., "p1082990842.webp" -> "p1082990842", "webp")
-        url_filename = original_url.split('/')[-1]
-        if '.' in url_filename:
-            base_name, ext = url_filename.rsplit('.', 1)
-            ext = f".{ext}"
+        if not download_poster(poster['original'], save_path):
+            continue
+
+        file_size = _get_file_size(save_path)
+        downloaded_all[poster_key] = (save_path, poster, file_size)
+
+        is_chinese = _is_chinese_region(poster.get('title', ''))
+
+        if file_size >= MIN_QUALIFIED_SIZE:
+            entry = (save_path, poster, file_size)
+            if is_chinese:
+                chinese_qualified.append(entry)
+                logger.info(f"Qualified Chinese poster: {poster.get('title', '')} ({file_size / 1024:.1f}KB)")
+            else:
+                non_chinese_qualified.append(entry)
+                logger.info(f"Qualified non-Chinese poster: {poster.get('title', '')} ({file_size / 1024:.1f}KB)")
+
+        # Early stop: 1 Chinese + 3 non-Chinese qualified
+        if len(chinese_qualified) >= 1 and len(non_chinese_qualified) >= 3:
+            logger.info("Early stop: found 1 Chinese + 3 non-Chinese posters >= 1MB each")
+            break
+
+    # Phase 2: Download remaining if not enough qualified posters
+    if not (len(chinese_qualified) >= 1 and len(non_chinese_qualified) >= 3):
+        logger.info(f"Not enough qualified posters, downloading remaining...")
+        for poster in filtered:
+            poster_key = poster['original']
+            if poster_key in downloaded_all:
+                continue
+
+            sleep_for_random_time()
+            save_path = _build_poster_save_path(poster, save_dir)
+
+            if not download_poster(poster['original'], save_path):
+                continue
+
+            file_size = _get_file_size(save_path)
+            downloaded_all[poster_key] = (save_path, poster, file_size)
+
+            is_chinese = _is_chinese_region(poster.get('title', ''))
+            if file_size >= MIN_QUALIFIED_SIZE:
+                entry = (save_path, poster, file_size)
+                if is_chinese:
+                    chinese_qualified.append(entry)
+                else:
+                    non_chinese_qualified.append(entry)
+
+    # Phase 3: Select final set
+    # Separate all downloaded into Chinese and non-Chinese groups
+    all_chinese: List[tuple] = []
+    all_non_chinese: List[tuple] = []
+
+    for save_path, poster, file_size in downloaded_all.values():
+        if _is_chinese_region(poster.get('title', '')):
+            all_chinese.append((save_path, poster, file_size))
         else:
-            base_name = url_filename
-            ext = ".jpg"
+            all_non_chinese.append((save_path, poster, file_size))
 
-        # Parse title to get keyword and region
-        # Title format: "正式海报 中国大陆" or "正式海报 美国" or "正式海报"
-        title_parts = title.strip().split()
-        keyword = title_parts[0] if title_parts else "正式海报"
-        region = title_parts[1] if len(title_parts) > 1 else ""
+    # Sort by size descending
+    all_chinese.sort(key=lambda x: x[2], reverse=True)
+    all_non_chinese.sort(key=lambda x: x[2], reverse=True)
 
-        # Build filename
-        if region:
-            filename = f"{base_name}_{keyword}_{region}{ext}"
-        else:
-            filename = f"{base_name}_{keyword}{ext}"
+    # Build final selection: 1 best Chinese + 3 best non-Chinese
+    selected_paths: List[str] = []
+    if all_chinese:
+        selected_paths.append(all_chinese[0][0])  # best (largest) Chinese
+    # Fill remaining slots with top non-Chinese
+    remaining_slots = 3 - (1 if all_chinese else 0)
+    selected_paths.extend(p[0] for p in all_non_chinese[:remaining_slots])
 
-        save_path = os.path.join(save_dir, filename)
+    # Deduplicate while preserving order
+    selected_paths = list(dict.fromkeys(selected_paths))
 
-        logger.info(f"Downloading poster {i+1}/{len(selected)}: {title} ({size/1024:.1f}KB)")
-        if download_poster(original_url, save_path):
-            downloaded.append(save_path)
+    # Phase 4: Cleanup - delete files < 10KB and unselected files
+    for file_path, poster, file_size in downloaded_all.values():
+        if not os.path.exists(file_path):
+            continue
 
-    logger.info(f"Downloaded {len(downloaded)} official posters for SID: {sid}")
-    return downloaded
+        if file_size < MIN_KEEP_SIZE:
+            logger.info(f"Deleting poster too small ({file_size / 1024:.1f}KB): {os.path.basename(file_path)}")
+            os.remove(file_path)
+        elif file_path not in selected_paths:
+            logger.info(f"Deleting unselected poster ({file_size / 1024:.1f}KB): {os.path.basename(file_path)}")
+            os.remove(file_path)
+
+    # Return only files that still exist
+    final_paths = [p for p in selected_paths if os.path.exists(p)]
+
+    logger.info(f"Downloaded {len(final_paths)} official posters for SID: {sid}")
+    return final_paths
