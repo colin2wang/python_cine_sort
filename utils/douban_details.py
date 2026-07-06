@@ -26,28 +26,26 @@ class DoubanMovieDetailsParser:
 
     def _extract_single(self, pattern: str, default: Optional[str] = None) -> Optional[str]:
         """Extract a single match using regex pattern.
-        
+
         Args:
             pattern (str): Regex pattern to search for
             default (Optional[str]): Default value if no match found
-            
+
         Returns:
             Optional[str]: Extracted text or default value
         """
-        import re
         match = re.search(pattern, self.html)
         return match.group(1).strip() if match else default
 
     def _extract_multiple(self, pattern: str) -> List[str]:
         """Extract all matches using regex pattern.
-        
+
         Args:
             pattern (str): Regex pattern to search for
-            
+
         Returns:
             List[str]: List of extracted text values
         """
-        import re
         matches = re.findall(pattern, self.html)
         return [match.strip() for match in matches]
 
@@ -81,8 +79,6 @@ class DoubanMovieDetailsParser:
         3. Meta tag description
         4. JSON-LD description
         """
-        import re
-        
         # Level 1: Full version plot summary
         desc_pattern = r'<span property="v:summary" class="all hidden">\s*(.*?)\s*</span>'
         match = re.search(desc_pattern, self.html, re.DOTALL)
@@ -112,8 +108,6 @@ class DoubanMovieDetailsParser:
 
     def _extract_english_title(self) -> None:
         """Extract English/original title from aliases."""
-        import re
-        
         pattern = r'又名:</span>([^<]+)'
         match = re.search(pattern, self.html)
         if not match:
@@ -205,8 +199,6 @@ class DoubanMovieDetailsParser:
         Returns:
             str: Cleaned text with HTML removed
         """
-        import re
-        
         if not text:
             return ""
         

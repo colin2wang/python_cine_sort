@@ -65,6 +65,9 @@ class MovieProcessor:
             'skipped': 0
         }
 
+        # Database
+        self.db = MovieDB()
+
     def process_directory(self, input_dir: Path, recursive: bool = True) -> List[Dict]:
         """Process all movie files in directory
 
@@ -225,13 +228,12 @@ class MovieProcessor:
                 # Save to database
                 self.logger.info("Saving to database...")
                 try:
-                    db = MovieDB()
-                    movie_id = db.save_movie(movie_details, directory_path=str(movie_dir))
+                    movie_id = self.db.save_movie(movie_details, directory_path=str(movie_dir))
                     self.logger.info(f"✓ Saved movie to database (ID: {movie_id})")
 
                     poster_metadata = get_official_posters(sid)
                     if poster_metadata:
-                        db.save_posters(movie_id, poster_metadata)
+                        self.db.save_posters(movie_id, poster_metadata)
                         self.logger.info(f"✓ Saved {len(poster_metadata)} poster records to database")
                 except Exception as e:
                     self.logger.error(f"⚠ Failed to save to database: {e}")

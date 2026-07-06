@@ -554,16 +554,15 @@ def get_official_posters(
     return selected
 
 
-def _build_poster_save_path(poster: Dict[str, Any], save_dir: str) -> str:
+def _parse_poster_filename(poster: Dict[str, Any]) -> str:
     """
-    Build the local save path for a poster.
+    Parse poster info dict and return a filename string.
 
     Args:
         poster: Poster info dict with 'original' and 'title' keys
-        save_dir: Directory to save the poster
 
     Returns:
-        Full file path
+        Filename string (e.g., "p1082990842_正式海报_中国大陆.webp")
     """
     original_url = poster['original']
     title = poster.get('title', '')
@@ -585,11 +584,23 @@ def _build_poster_save_path(poster: Dict[str, Any], save_dir: str) -> str:
 
     # Build filename
     if region:
-        filename = f"{base_name}_{keyword}_{region}{ext}"
+        return f"{base_name}_{keyword}_{region}{ext}"
     else:
-        filename = f"{base_name}_{keyword}{ext}"
+        return f"{base_name}_{keyword}{ext}"
 
-    return os.path.join(save_dir, filename)
+
+def _build_poster_save_path(poster: Dict[str, Any], save_dir: str) -> str:
+    """
+    Build the local save path for a poster.
+
+    Args:
+        poster: Poster info dict with 'original' and 'title' keys
+        save_dir: Directory to save the poster
+
+    Returns:
+        Full file path
+    """
+    return os.path.join(save_dir, _parse_poster_filename(poster))
 
 
 def _get_file_size(file_path: str) -> int:

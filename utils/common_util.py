@@ -2,7 +2,6 @@ import hashlib
 import random
 import re
 import time
-from functools import lru_cache
 from urllib.parse import urljoin
 
 import requests
@@ -20,7 +19,7 @@ def sleep_for_random_time():
         None: This function does not return any value
     """
     sleep_time = random.uniform(0.5, 1.5)
-    logger.info(f"Sleeping for {sleep_time:.2f} seconds...")
+    logger.debug(f"Sleeping for {sleep_time:.2f} seconds...")
     time.sleep(sleep_time)
 
 
@@ -53,7 +52,6 @@ def calculate_nonce(challenge: str, difficulty: int = 4) -> str:
             logger.debug(f"POW calculation attempted {nonce} times...")
 
 
-@lru_cache(maxsize=128)
 def bypass_douban_verification(target_url: str, max_retries: int = 2) -> requests.Response:
     """
     Automatically handle Douban verification process, return response object of target page

@@ -143,8 +143,6 @@ def parse_movie_search_result(html_content: str) -> dict:
             - error (str or None): Error message if parsing failed, otherwise None
             Note: If parsing fails, returns an empty movie info dict with error field set
     """
-    import re
-    
     # Parameter validation
     if html_content is None:
         logger.error("✗ HTML content is None")

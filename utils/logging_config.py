@@ -54,7 +54,7 @@ except OSError as e:
 
 # 4. Generate Unique Filename (One per run)
 _timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-LOG_FILE_NAME = f"cloud_music_{_timestamp}.log"
+LOG_FILE_NAME = f"cine_sort_{_timestamp}.log"
 LOG_FILE_PATH = LOG_DIR / LOG_FILE_NAME
 
 # 5. Define Formats

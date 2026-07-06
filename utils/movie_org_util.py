@@ -393,39 +393,17 @@ class MovieOrganizer:
             str: Formatted rating information text
         """
         lines = []
-        
+
         if movie_info.get('rating'):
             lines.append(f"豆瓣评分: {movie_info['rating']}")
-        
+
         if movie_info.get('rating_count'):
             lines.append(f"评分人数: {movie_info['rating_count']}")
-        
+
         if movie_info.get('top250_rank'):
             lines.append(f"Top250排名: #{movie_info['top250_rank']}")
-        
+
         return '\n'.join(lines) if lines else movie_info.get('rating', '')
-
-    def _build_rating_content_from_details(self, movie_details: Dict) -> str:
-        """Build rating content from movie details for rating file
-
-        Args:
-            movie_details (dict): Movie details dictionary from Douban
-
-        Returns:
-            str: Formatted rating information text
-        """
-        lines = []
-        
-        if movie_details.get('rating'):
-            lines.append(f"豆瓣评分: {movie_details['rating']}")
-        
-        if movie_details.get('rating_count'):
-            lines.append(f"评分人数: {movie_details['rating_count']}")
-        
-        if movie_details.get('top250_rank'):
-            lines.append(f"Top250排名: #{movie_details['top250_rank']}")
-        
-        return '\n'.join(lines) if lines else movie_details.get('rating', '')
 
     def _write_text_file(self, file_path: Path, content: str):
         """Write text content to file
@@ -436,6 +414,24 @@ class MovieOrganizer:
         """
         with open(file_path, 'w', encoding=self.config.file_encoding) as f:
             f.write(content)
+
+
+def _load_org_config(config_file: Optional[str] = None) -> MovieOrgConfig:
+    """Load movie organizer configuration.
+
+    Args:
+        config_file (str, optional): Configuration file path. Auto-detects if None.
+
+    Returns:
+        MovieOrgConfig: Loaded configuration
+    """
+    if config_file:
+        return MovieOrgConfig(Path(config_file))
+
+    config_path = Path(__file__).parent.parent / "config" / "movie_org_util.yml"
+    if config_path.exists():
+        return MovieOrgConfig(config_path)
+    return MovieOrgConfig()
 
 
 def organize_movie(
@@ -451,18 +447,7 @@ def organize_movie(
     Returns:
         Optional[Path]: Created directory path, None on failure
     """
-    # Load configuration
-    if config_file:
-        config = MovieOrgConfig(Path(config_file))
-    else:
-        # Auto-detect configuration file
-        config_path = Path(__file__).parent.parent / "config" / "movie_org_util.yml"
-        if config_path.exists():
-            config = MovieOrgConfig(config_path)
-        else:
-            config = MovieOrgConfig()
-
-    # Create organizer and process
+    config = _load_org_config(config_file)
     organizer = MovieOrganizer(config)
     return organizer.create_movie_directory(movie_info)
 
@@ -480,17 +465,6 @@ def organize_movie_by_detail(
     Returns:
         Optional[Path]: Created directory path, None on failure
     """
-    # Load configuration
-    if config_file:
-        config = MovieOrgConfig(Path(config_file))
-    else:
-        # Auto-detect configuration file
-        config_path = Path(__file__).parent.parent / "config" / "movie_org_util.yml"
-        if config_path.exists():
-            config = MovieOrgConfig(config_path)
-        else:
-            config = MovieOrgConfig()
-
-    # Create organizer and process
+    config = _load_org_config(config_file)
     organizer = MovieOrganizer(config)
     return organizer.create_movie_directory_by_detail(movie_details)

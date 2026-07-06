@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Optional
 
 from utils.douban_details import get_movie_details_html, parse_movie_details_result
-from utils.douban_poster import get_official_posters, download_official_posters, download_poster
+from utils.douban_poster import get_official_posters, download_official_posters, download_poster, _parse_poster_filename
 from utils.movie_org_util import organize_movie_by_detail, MovieOrgConfig
 from utils.db_manager import MovieDB
 from utils.logging_config import setup_logger
@@ -108,29 +108,11 @@ def process_by_sid(sid: str) -> int:
                 if not original_url or original_url in failed_urls:
                     continue
 
-                # Build filename with keyword/region tags
-                url_filename = original_url.split('/')[-1]
-                if '.' in url_filename:
-                    base_name, ext = url_filename.rsplit('.', 1)
-                    ext = f".{ext}"
-                else:
-                    base_name = url_filename
-                    ext = ".jpg"
-
-                keyword = poster.get('keyword', '')
-                region = poster.get('region', '')
-                if not keyword and poster.get('title'):
-                    title_parts = poster['title'].strip().split()
-                    keyword = title_parts[0] if title_parts else ''
-                    region = title_parts[1] if len(title_parts) > 1 else ''
-
-                if keyword and region:
-                    filename = f"{base_name}_{keyword}_{region}{ext}"
-                elif keyword:
-                    filename = f"{base_name}_{keyword}{ext}"
-                else:
-                    filename = f"{base_name}{ext}"
-
+                # Build filename using shared helper
+                filename = _parse_poster_filename({
+                    'original': original_url,
+                    'title': poster.get('title', '')
+                })
                 save_path = str(poster_dir / filename)
 
                 if download_poster(original_url, save_path):
@@ -157,28 +139,10 @@ def process_by_sid(sid: str) -> int:
 
                     for poster in fresh_posters:
                         fresh_url = poster.get('original', poster.get('original_url', ''))
-                        if not fresh_url:
+                        if not fresh_url or fresh_url not in failed_urls:
                             continue
-                        title = poster.get('title', '')
-                        url_fn = fresh_url.split('/')[-1]
-                        if '.' in url_fn:
-                            fresh_base, fresh_ext = url_fn.rsplit('.', 1)
-                            fresh_ext = f".{fresh_ext}"
-                        else:
-                            fresh_base = url_fn
-                            fresh_ext = ".jpg"
 
-                        title_parts = title.strip().split()
-                        fresh_keyword = title_parts[0] if title_parts else ''
-                        fresh_region = title_parts[1] if len(title_parts) > 1 else ''
-
-                        if fresh_keyword and fresh_region:
-                            fresh_filename = f"{fresh_base}_{fresh_keyword}_{fresh_region}{fresh_ext}"
-                        elif fresh_keyword:
-                            fresh_filename = f"{fresh_base}_{fresh_keyword}{fresh_ext}"
-                        else:
-                            fresh_filename = f"{fresh_base}{fresh_ext}"
-
+                        fresh_filename = _parse_poster_filename(poster)
                         fresh_save_path = str(poster_dir / fresh_filename)
                         if download_poster(fresh_url, fresh_save_path):
                             db.update_poster_download(
