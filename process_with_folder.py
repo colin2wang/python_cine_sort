@@ -18,7 +18,7 @@ from typing import List, Dict, Optional
 from utils.movie_file_util import MovieFileScanner, MovieFileScannerConfig
 from utils.douban_search import get_movie_search_result_html, parse_movie_search_result
 from utils.douban_details import get_movie_details_html, parse_movie_details_result
-from utils.douban_poster import get_official_posters, download_official_posters
+from utils.douban_poster import download_official_posters
 from utils.movie_org_util import organize_movie_by_detail, MovieOrgConfig
 from utils.db_manager import MovieDB
 from utils.imdb_rating import get_imdb_rating
@@ -222,7 +222,7 @@ class MovieProcessor:
 
                 # Step 5: Download official posters
                 self.logger.info(f"\n[Step 5/5] Downloading official posters...")
-                downloaded_posters = download_official_posters(
+                downloaded_posters, poster_metadata = download_official_posters(
                     sid=sid,
                     save_dir=str(movie_dir),
                     title_keyword="正式海报"
@@ -241,7 +241,6 @@ class MovieProcessor:
                     movie_id = self.db.save_movie(movie_details, directory_path=str(movie_dir))
                     self.logger.info(f"✓ Saved movie to database (ID: {movie_id})")
 
-                    poster_metadata = get_official_posters(sid)
                     if poster_metadata:
                         self.db.save_posters(movie_id, poster_metadata)
                         self.logger.info(f"✓ Saved {len(poster_metadata)} poster records to database")

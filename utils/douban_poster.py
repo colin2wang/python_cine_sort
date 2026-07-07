@@ -1,6 +1,6 @@
 import os
 import re
-from typing import Optional, Dict, List, Any
+from typing import Optional, Dict, List, Any, Tuple
 
 import requests
 
@@ -655,7 +655,7 @@ def download_official_posters(
     sid: str,
     save_dir: str,
     title_keyword: str = "正式海报"
-) -> List[str]:
+) -> Tuple[List[str], List[Dict[str, Any]]]:
     """
     Download official posters with smart selection.
 
@@ -672,7 +672,7 @@ def download_official_posters(
         title_keyword: Keyword to filter poster titles
 
     Returns:
-        List of paths to downloaded poster files
+        Tuple of (paths to downloaded poster files, poster metadata list)
     """
     html_content = get_posters_page_html(sid, photo_type='R')
     if not html_content:
@@ -787,13 +787,18 @@ def download_official_posters(
     all_chinese.sort(key=lambda x: x[2], reverse=True)
     all_non_chinese.sort(key=lambda x: x[2], reverse=True)
 
-    # Build final selection: 1 best Chinese + 3 best non-Chinese
+    # Build final selection: at least 1 Chinese, then largest by size
     selected_paths: List[str] = []
     if all_chinese:
         selected_paths.append(all_chinese[0][0])  # best (largest) Chinese
-    # Fill remaining slots with top non-Chinese
-    remaining_slots = 3 - (1 if all_chinese else 0)
-    selected_paths.extend(p[0] for p in all_non_chinese[:remaining_slots])
+    # Merge remaining posters (excluding already selected) and sort by size
+    remaining = [
+        p for p in (all_chinese[1:] + all_non_chinese)
+        if p[0] not in selected_paths
+    ]
+    remaining.sort(key=lambda x: x[2], reverse=True)
+    remaining_slots = 4 - len(selected_paths)
+    selected_paths.extend(p[0] for p in remaining[:remaining_slots])
 
     # Deduplicate while preserving order
     selected_paths = list(dict.fromkeys(selected_paths))
@@ -810,8 +815,23 @@ def download_official_posters(
             logger.info(f"Deleting unselected poster ({file_size / 1024:.1f}KB): {os.path.basename(file_path)}")
             os.remove(file_path)
 
-    # Return only files that still exist
+    # Return only files that still exist, with metadata for selected posters
     final_paths = [p for p in selected_paths if os.path.exists(p)]
 
+    # Build metadata for selected posters
+    selected_metadata = []
+    for path in final_paths:
+        for save_path, poster, file_size in downloaded_all.values():
+            if save_path == path:
+                metadata = {
+                    'original': poster.get('original', ''),
+                    'title': poster.get('title', ''),
+                    'thumbnail': poster.get('thumbnail', ''),
+                    'size': file_size,
+                    'local_path': path,
+                }
+                selected_metadata.append(metadata)
+                break
+
     logger.info(f"Downloaded {len(final_paths)} official posters for SID: {sid}")
-    return final_paths
+    return final_paths, selected_metadata

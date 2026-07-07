@@ -7,6 +7,7 @@
 #movie_folder: "K:/临时暂存/临时影视/临时电影/[!TBD]"
 #movie_folder: "K:/临时暂存/临时影视/临时电影/[!Test]"
 movie_folder: "P:/待归档电影/[整理]"
+#movie_folder: "L:/我的电影-6.0以下"
 
 # Directory name format template
 # Available variables: {chinese_title}, {english_title}, {year}

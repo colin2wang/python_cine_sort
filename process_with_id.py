@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Optional
 
 from utils.douban_details import get_movie_details_html, parse_movie_details_result
-from utils.douban_poster import get_official_posters, download_official_posters
+from utils.douban_poster import download_official_posters
 from utils.movie_org_util import organize_movie_by_detail, MovieOrgConfig
 from utils.db_manager import MovieDB
 from utils.imdb_rating import get_imdb_rating
@@ -107,7 +107,7 @@ def process_by_sid(sid: str) -> int:
     # Step 3: Download official posters
     logger.info("Downloading official posters...")
     poster_dir = Path(movie_dir)
-    downloaded_posters = download_official_posters(
+    downloaded_posters, poster_metadata = download_official_posters(
         sid=sid,
         save_dir=str(poster_dir),
         title_keyword="正式海报"
@@ -127,7 +127,6 @@ def process_by_sid(sid: str) -> int:
         movie_id = db.save_movie(movie_details, directory_path=str(movie_dir))
         logger.info(f"✓ Saved movie to database (ID: {movie_id})")
 
-        poster_metadata = get_official_posters(sid)
         if poster_metadata:
             db.save_posters(movie_id, poster_metadata)
             logger.info(f"✓ Saved {len(poster_metadata)} poster records to database")
